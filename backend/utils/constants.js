@@ -1,0 +1,53 @@
+// Token States
+export const TOKEN_STATES = {
+  WAITING: 'waiting',
+  SERVING: 'serving',
+  HELD: 'held',
+  SKIPPED: 'skipped',
+  COMPLETED: 'completed',
+  MISSED: 'missed',
+  CANCELLED: 'cancelled'
+};
+
+// Valid State Transitions
+export const VALID_TRANSITIONS = {
+  [TOKEN_STATES.WAITING]: [
+    TOKEN_STATES.SERVING,
+    TOKEN_STATES.SKIPPED,
+    TOKEN_STATES.MISSED,
+    TOKEN_STATES.CANCELLED,
+    TOKEN_STATES.HELD
+  ],
+  [TOKEN_STATES.SERVING]: [
+    TOKEN_STATES.COMPLETED,
+    TOKEN_STATES.HELD
+  ],
+  [TOKEN_STATES.HELD]: [
+    TOKEN_STATES.WAITING,
+    TOKEN_STATES.SERVING,
+    TOKEN_STATES.CANCELLED
+  ],
+  [TOKEN_STATES.SKIPPED]: [
+    TOKEN_STATES.WAITING,
+    TOKEN_STATES.CANCELLED
+  ],
+  [TOKEN_STATES.COMPLETED]: [], // Terminal state
+  [TOKEN_STATES.MISSED]: [], // Terminal state
+  [TOKEN_STATES.CANCELLED]: [] // Terminal state
+};
+
+// User Roles
+export const USER_ROLES = {
+  USER: 'USER',
+  STAFF: 'STAFF',
+  OPERATOR: 'OPERATOR',
+  ADMIN: 'ADMIN'
+};
+
+// Queue Settings
+export const QUEUE_SETTINGS = {
+  TOKEN_EXPIRY_MINUTES: 30,
+  NO_SHOW_MINUTES: 15,
+  MAX_QUEUE_SIZE: 100,
+  RECALL_TIMEOUT_MINUTES: 5
+};

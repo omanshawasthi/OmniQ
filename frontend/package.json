@@ -1,0 +1,58 @@
+{
+  "name": "queueless-frontend",
+  "version": "1.0.0",
+  "description": "Smart Queue & Wait-Time Optimization Platform - Frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "format": "prettier --write src/"
+  },
+  "keywords": [
+    "queue",
+    "booking",
+    "real-time",
+    "optimization",
+    "react"
+  ],
+  "author": "Queueless Team",
+  "license": "MIT",
+  "dependencies": {
+    "@headlessui/react": "^1.7.17",
+    "@hookform/resolvers": "^3.3.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.8.4",
+    "@yudiel/react-qr-scanner": "^2.0.0-alpha.3",
+    "axios": "^1.6.2",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
+    "qrcode": "^1.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.48.2",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.30.3",
+    "recharts": "^2.8.0",
+    "socket.io-client": "^4.7.4",
+    "zod": "^3.22.4",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.4.32",
+    "prettier": "^3.1.0",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.0.0"
+  }
+}
