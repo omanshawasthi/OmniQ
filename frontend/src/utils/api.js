@@ -42,8 +42,9 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    const isAuthRoute = originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/register');
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         // Queue up requests while refresh is in-flight
         return new Promise((resolve, reject) => {
@@ -123,6 +124,7 @@ export const tokenAPI = {
   bookToken: (tokenData) => api.post('/tokens/book', tokenData),
   getMyTokens: (params) => api.get('/tokens/my-tokens', { params }),
   getToken: (tokenId) => api.get(`/tokens/${tokenId}`),
+  getTokenLiveStatus: (tokenId) => api.get(`/tokens/${tokenId}/live`),
   cancelToken: (tokenId) => api.put(`/tokens/${tokenId}/cancel`),
   checkInToken: (tokenId) => api.put(`/tokens/${tokenId}/checkin`),
   getQueueStatus: (branchId, departmentId) =>

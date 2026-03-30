@@ -19,31 +19,18 @@ const LoginPage = () => {
     setError('')
     
     try {
-      console.log('Attempting login with:', email)
-      await login({ email, password })
+      const emailTrimmed = email.trim()
+      console.log('Attempting login with:', emailTrimmed)
+      await login({ email: emailTrimmed, password })
       console.log('Login successful')
       
-      // Get user role from auth store after login (avoiding stale closure)
-      const currentUser = useAuthStore.getState().user
-      const userRole = currentUser?.role
-      
-      // Redirect based on user role
-      switch (userRole) {
-        case 'ADMIN':
-          navigate('/admin')
-          break
-        case 'STAFF':
-          navigate('/staff')
-          break
-        case 'OPERATOR':
-          navigate('/operator')
-          break
-        case 'USER':
-          navigate('/dashboard')
-          break
-        default:
-          navigate('/dashboard')
-      }
+      // GuestRoute will automatically redirect as soon as isAuthenticated is true.
+      // We only need a manual navigate here if for some reason the component doesn't unmount fast enough.
+      const userRole = useAuthStore.getState().user?.role
+      if (userRole === 'ADMIN') navigate('/admin')
+      else if (userRole === 'STAFF') navigate('/staff')
+      else if (userRole === 'OPERATOR') navigate('/operator')
+      else navigate('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
       setError(err.response?.data?.message || 'Login failed. Please try again.')

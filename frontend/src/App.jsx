@@ -15,6 +15,7 @@ import HistoryPage from './pages/user/HistoryPage'
 import ProfilePage from './pages/user/ProfilePage'
 import ActiveTokenPage from './pages/user/ActiveTokenPage'
 import TokenDetailsPage from './pages/user/TokenDetailsPage'
+import LiveQueuePage from './pages/user/LiveQueuePage'
 
 // Admin pages
 import AdminDashboard from './pages/AdminDashboard'
@@ -46,7 +47,8 @@ const GuestRoute = ({ children }) => {
       OPERATOR: '/operator',
       USER: '/dashboard',
     }
-    return <Navigate to={roleRoutes[user.role] || '/dashboard'} replace />
+    const normalizedRole = (user.role || '').toUpperCase()
+    return <Navigate to={roleRoutes[normalizedRole] || '/dashboard'} replace />
   }
   return children
 }
@@ -123,6 +125,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['USER']}>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/live-queue/:id"
+          element={
+            <ProtectedRoute allowedRoles={['USER', 'STAFF', 'ADMIN', 'OPERATOR']}>
+              <LiveQueuePage />
             </ProtectedRoute>
           }
         />

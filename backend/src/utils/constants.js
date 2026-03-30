@@ -1,3 +1,12 @@
+// User Roles
+export const USER_ROLES = {
+  USER: 'USER',
+  STAFF: 'STAFF',
+  OPERATOR: 'OPERATOR',
+  ADMIN: 'ADMIN'
+};
+
+// Also export ROLES for backward compatibility in some src components
 export const ROLES = {
   USER: 'user',
   STAFF: 'staff',
@@ -5,6 +14,7 @@ export const ROLES = {
   ADMIN: 'admin'
 };
 
+// Token Status / States
 export const TOKEN_STATUS = {
   WAITING: 'waiting',
   SERVING: 'serving',
@@ -15,80 +25,81 @@ export const TOKEN_STATUS = {
   CANCELLED: 'cancelled'
 };
 
+// Alias for compatibility
+export const TOKEN_STATES = TOKEN_STATUS;
+
+// Token Priority
 export const TOKEN_PRIORITY = {
   NORMAL: 'normal',
-  HIGH: 'high'
+  HIGH: 'high',
+  URGENT: 'urgent'
 };
 
+// Booking Types
 export const BOOKING_TYPE = {
+  WALK_IN: 'walk-in',
   ONLINE: 'online',
-  WALK_IN: 'walk-in'
+  APPOINTMENT: 'appointment'
 };
 
+// Counter Status
 export const COUNTER_STATUS = {
+  OFFLINE: 'offline',
   ACTIVE: 'active',
   PAUSED: 'paused',
-  OFFLINE: 'offline'
+  INACTIVE: 'inactive'
 };
 
-export const NOTIFICATION_TYPES = {
-  BOOKING_CONFIRMED: 'booking_confirmed',
-  TOKEN_APPROACHING: 'token_approaching',
-  MISSED_TOKEN: 'missed_token',
-  TOKEN_CANCELLED: 'token_cancelled',
-  QUEUE_DELAYED: 'queue_delayed',
-  TOKEN_COMPLETED: 'token_completed',
-  TOKEN_EXPIRED: 'token_expired'
+// User Permissions
+export const PERMISSIONS = {
+  BOOK_TOKEN: 'book_token',
+  VIEW_QUEUE_STATUS: 'view_queue_status',
+  CREATE_WALK_IN: 'create_walk_in',
+  CONTROL_QUEUE: 'control_queue',
+  MANAGE_BRANCHES: 'manage_branches',
+  MANAGE_DEPARTMENTS: 'manage_departments',
+  MANAGE_COUNTERS: 'manage_counters',
+  MANAGE_USERS: 'manage_users',
+  VIEW_ANALYTICS: 'view_analytics'
 };
 
-export const QUEUE_ACTIONS = {
-  CREATED: 'created',
-  CALLED: 'called',
-  SERVING: 'serving',
-  COMPLETED: 'completed',
-  SKIPPED: 'skipped',
-  HELD: 'held',
-  MISSED: 'missed',
-  CANCELLED: 'cancelled',
-  RECALLED: 'recalled',
-  CHECKED_IN: 'checked-in'
+// Role-based Permissions
+export const ROLE_PERMISSIONS = {
+  [USER_ROLES.USER]: [
+    PERMISSIONS.BOOK_TOKEN,
+    PERMISSIONS.VIEW_QUEUE_STATUS
+  ],
+  [USER_ROLES.STAFF]: [
+    PERMISSIONS.BOOK_TOKEN,
+    PERMISSIONS.VIEW_QUEUE_STATUS,
+    PERMISSIONS.CREATE_WALK_IN,
+    PERMISSIONS.CONTROL_QUEUE
+  ],
+  [USER_ROLES.OPERATOR]: [
+    PERMISSIONS.VIEW_QUEUE_STATUS,
+    PERMISSIONS.CONTROL_QUEUE
+  ],
+  [USER_ROLES.ADMIN]: ['*'] // Full access
 };
 
-export const SOCKET_EVENTS = {
-  // Client to Server
-  JOIN_ROOM: 'join_room',
-  LEAVE_ROOM: 'leave_room',
-  QUEUE_ACTION: 'queue_action',
-  
-  // Server to Client
-  TOKEN_STATUS_CHANGED: 'token_status_changed',
-  QUEUE_UPDATED: 'queue_updated',
-  TOKEN_CALLED: 'token_called',
-  NOTIFICATION: 'notification',
-  PUBLIC_DISPLAY_UPDATE: 'public_display_update',
-  COUNTER_STATUS_CHANGED: 'counter_status_changed'
-};
+// Also add lowercase versions for secondary components using mixed logic
+ROLE_PERMISSIONS['user'] = ROLE_PERMISSIONS[USER_ROLES.USER];
+ROLE_PERMISSIONS['staff'] = ROLE_PERMISSIONS[USER_ROLES.STAFF];
+ROLE_PERMISSIONS['operator'] = ROLE_PERMISSIONS[USER_ROLES.OPERATOR];
+ROLE_PERMISSIONS['admin'] = ROLE_PERMISSIONS[USER_ROLES.ADMIN];
 
-export const ROOM_TYPES = {
-  BRANCH: 'branch_',
-  DEPARTMENT: 'department_',
-  COUNTER: 'counter_',
-  USER: 'user_',
-  PUBLIC_DISPLAY: 'public_display_'
-};
-
-export const VALID_TOKEN_TRANSITIONS = {
+// Valid State Transitions
+export const VALID_TRANSITIONS = {
   [TOKEN_STATUS.WAITING]: [
     TOKEN_STATUS.SERVING,
-    TOKEN_STATUS.HELD,
     TOKEN_STATUS.SKIPPED,
     TOKEN_STATUS.MISSED,
-    TOKEN_STATUS.CANCELLED
+    TOKEN_STATUS.CANCELLED,
+    TOKEN_STATUS.HELD
   ],
   [TOKEN_STATUS.SERVING]: [
     TOKEN_STATUS.COMPLETED,
-    TOKEN_STATUS.HELD,
-    TOKEN_STATUS.SKIPPED
+    TOKEN_STATUS.HELD
   ],
   [TOKEN_STATUS.HELD]: [
     TOKEN_STATUS.WAITING,
@@ -97,50 +108,54 @@ export const VALID_TOKEN_TRANSITIONS = {
   ],
   [TOKEN_STATUS.SKIPPED]: [
     TOKEN_STATUS.WAITING,
-    TOKEN_STATUS.MISSED,
     TOKEN_STATUS.CANCELLED
   ],
-  [TOKEN_STATUS.MISSED]: [
-    TOKEN_STATUS.WAITING,
-    TOKEN_STATUS.CANCELLED
-  ],
-  [TOKEN_STATUS.COMPLETED]: [],
-  [TOKEN_STATUS.CANCELLED]: []
+  [TOKEN_STATUS.COMPLETED]: [], 
+  [TOKEN_STATUS.MISSED]: [], 
+  [TOKEN_STATUS.CANCELLED]: [] 
 };
 
-export const PERMISSIONS = {
-  // Token permissions
-  BOOK_TOKEN: 'book_token',
-  VIEW_QUEUE_STATUS: 'view_queue_status',
-  CREATE_WALK_IN: 'create_walk_in',
-  CONTROL_QUEUE: 'control_queue',
-  
-  // Management permissions
-  MANAGE_BRANCHES: 'manage_branches',
-  MANAGE_DEPARTMENTS: 'manage_departments',
-  MANAGE_COUNTERS: 'manage_counters',
-  MANAGE_USERS: 'manage_users',
-  VIEW_ANALYTICS: 'view_analytics',
-  
-  // System permissions
-  VIEW_LOGS: 'view_logs',
-  SYSTEM_CONFIG: 'system_config'
+// Queue Settings
+export const QUEUE_SETTINGS = {
+  TOKEN_EXPIRY_MINUTES: 30,
+  NO_SHOW_MINUTES: 15,
+  MAX_QUEUE_SIZE: 100,
+  RECALL_TIMEOUT_MINUTES: 5
 };
 
-export const ROLE_PERMISSIONS = {
-  [ROLES.USER]: [
-    PERMISSIONS.BOOK_TOKEN,
-    PERMISSIONS.VIEW_QUEUE_STATUS
-  ],
-  [ROLES.STAFF]: [
-    PERMISSIONS.BOOK_TOKEN,
-    PERMISSIONS.VIEW_QUEUE_STATUS,
-    PERMISSIONS.CREATE_WALK_IN,
-    PERMISSIONS.CONTROL_QUEUE
-  ],
-  [ROLES.OPERATOR]: [
-    PERMISSIONS.VIEW_QUEUE_STATUS,
-    PERMISSIONS.CONTROL_QUEUE
-  ],
-  [ROLES.ADMIN]: Object.values(PERMISSIONS)
+// Queue Actions
+export const QUEUE_ACTIONS = {
+  CREATED: 'CREATED',
+  BOOKED: 'BOOKED',
+  CALLED: 'CALLED',
+  SERVING: 'SERVING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  MISSED: 'MISSED',
+  HELD: 'HELD',
+  SKIPPED: 'SKIPPED',
+  RECALLED: 'RECALLED',
+  TRANSFER: 'TRANSFER',
+  CHECK_IN: 'CHECK_IN'
+};
+
+// Socket.IO Room Types
+export const ROOM_TYPES = {
+  BRANCH: 'branch_',
+  DEPARTMENT: 'dept_',
+  COUNTER: 'counter_',
+  USER: 'user_',
+  PUBLIC_DISPLAY: 'display_'
+};
+
+// Socket.IO Events
+export const SOCKET_EVENTS = {
+  JOIN_ROOM: 'join_room',
+  LEAVE_ROOM: 'leave_room',
+  QUEUE_UPDATED: 'queue_updated',
+  TOKEN_CALLED: 'token_called',
+  TOKEN_STATUS_CHANGED: 'token_status_changed',
+  PUBLIC_DISPLAY_UPDATE: 'display_update',
+  NOTIFICATION: 'notification',
+  QUEUE_ACTION: 'queue_action'
 };

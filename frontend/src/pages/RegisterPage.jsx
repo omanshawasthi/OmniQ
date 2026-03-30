@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, UserPlus, Users } from 'lucide-react'
 import { authAPI } from '../utils/api.js'
+import { useAuthStore } from '../store/authStore.js'
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -46,33 +47,10 @@ const RegisterPage = () => {
         role: formData.role.toLowerCase()
       }
       
-      const response = await authAPI.register(registrationData)
+      // Use the store's register action for auto-login and state management
+      await useAuthStore.getState().register(registrationData)
       
-      // The API utility (api.js) already unwraps response.data.data
-      // We expect response to have { accessToken, refreshToken, user }
-      const accessToken = response.accessToken || response.data?.accessToken
-      const refreshToken = response.refreshToken || response.data?.refreshToken
-      const user = response.user || response.data?.user
-      
-      if (accessToken) localStorage.setItem('token', accessToken)
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-      if (user) localStorage.setItem('user', JSON.stringify(user))
-      
-      // Redirect based on user role
-      const userRole = (user?.role || '').toUpperCase()
-      switch (userRole) {
-        case 'ADMIN':
-          navigate('/admin')
-          break
-        case 'STAFF':
-          navigate('/staff')
-          break
-        case 'OPERATOR':
-          navigate('/operator')
-          break
-        default:
-          navigate('/user')
-      }
+      // GuestRoute will handle redirection automatically
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.')
     } finally {

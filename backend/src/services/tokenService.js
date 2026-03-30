@@ -4,7 +4,7 @@ import Branch from '../models/Branch.js'
 import Department from '../models/Department.js'
 import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
-import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS } from '../utils/constants.js'
+import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS } from '../utils/constants.js'
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
 import AppError from '../utils/AppError.js'
@@ -447,7 +447,83 @@ export class TokenService {
       bookingTypeStats: bookingTypeStats.reduce((acc, stat) => {
         acc[stat._id] = stat.count
         return acc
-      }, {})
+       }, {})
+    }
+  }
+
+  // Get live queue status for a specific token
+  static async getTokenLiveStatus(tokenId, userId = null) {
+    const token = await this.getTokenById(tokenId, userId)
+    
+    if (!token) {
+      throw new AppError('Token not found', 404)
+    }
+
+    const { branchId, departmentId, status, priority, scheduledTime, createdAt } = token
+
+    // 1. Calculate Position and People Ahead
+    let position = 0
+    let peopleAhead = 0
+
+    if (status === TOKEN_STATUS.WAITING) {
+      // Logic for position: count tokens that would be served before this one
+      // High priority > Normal priority
+      // Earlier scheduledTime > Later scheduledTime
+      // Earlier createdAt > Later createdAt
+      const aheadCount = await Token.countDocuments({
+        branchId,
+        departmentId,
+        status: TOKEN_STATUS.WAITING,
+        _id: { $ne: tokenId },
+        $or: [
+          // Higher priority always wins
+          { priority: TOKEN_PRIORITY.HIGH, priority: { $ne: priority } },
+          // Same priority, but earlier scheduled time
+          { 
+            priority, 
+            $or: [
+              { scheduledTime: { $lt: scheduledTime } },
+              { scheduledTime, createdAt: { $lt: createdAt } }
+            ] 
+          }
+        ]
+      })
+
+      position = aheadCount + 1
+      peopleAhead = aheadCount
+    } else if (status === TOKEN_STATUS.SERVING) {
+      position = 0 // Currently being served
+      peopleAhead = 0
+    }
+
+    // 2. Identify Currently Serving Token in the Department
+    const activeCounter = await Counter.findOne({
+      branchId,
+      departmentId,
+      status: COUNTER_STATUS.ACTIVE,
+      currentToken: { $ne: null }
+    }).populate('currentToken', 'tokenNumber')
+
+    const currentlyServing = activeCounter ? activeCounter.currentToken : null
+
+    // 3. Queue Status (Active/Paused)
+    // We'll consider it "Active" if at least one counter is active
+    const counters = await Counter.find({ branchId, departmentId })
+    const isQueuePaused = counters.length > 0 && counters.every(c => c.status === COUNTER_STATUS.PAUSED)
+    const isQueueClosed = counters.length === 0 || counters.every(c => c.status === COUNTER_STATUS.OFFLINE)
+
+    let queueStatus = 'active'
+    if (isQueuePaused) queueStatus = 'paused'
+    else if (isQueueClosed) queueStatus = 'closed'
+
+    return {
+      token,
+      position,
+      peopleAhead,
+      currentlyServing,
+      queueStatus,
+      estimatedWaitTime: token.estimatedWaitTime || 0,
+      refreshInterval: 30000 // Strategy: 30s fallback polling if socket fails
     }
   }
 }

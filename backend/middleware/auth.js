@@ -1,18 +1,12 @@
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import User from '../src/models/User.js';
-
-// Mock users matching mockAuthController (fallback for non-ObjectId IDs)
-const MOCK_USERS = [
-  { _id: '000000000000000000000001', id: '000000000000000000000001', name: 'Admin User',    email: 'admin@queueless.com',    role: 'ADMIN',    isActive: true },
-  { _id: '000000000000000000000002', id: '000000000000000000000002', name: 'Staff User',    email: 'staff@queueless.com',    role: 'STAFF',    isActive: true },
-  { _id: '000000000000000000000003', id: '000000000000000000000003', name: 'Operator User', email: 'operator@queueless.com', role: 'OPERATOR', isActive: true },
-  { _id: '000000000000000000000004', id: '000000000000000000000004', name: 'Regular User',  email: 'user@queueless.com',     role: 'USER',     isActive: true },
-];
+import { ROLE_PERMISSIONS } from '../utils/constants.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.header('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ 
@@ -22,34 +16,25 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    const userId = decoded.userId || decoded.id;
 
-    // Check if it's one of our mock users first (since their IDs are now valid ObjectIds too)
-    const mockUser = MOCK_USERS.find(u => u._id === userId);
-    if (mockUser) {
-      if (!mockUser.isActive) {
-        return res.status(401).json({ success: false, message: 'Invalid token.' });
-      }
-      req.user = mockUser;
-      return next();
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({ success: false, message: 'Invalid token structure.' });
     }
 
-    // Otherwise query the real DB
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      const user = await User.findById(userId).select('-password');
-      if (!user || !user.isActive) {
-        return res.status(401).json({ success: false, message: 'Invalid token.' });
-      }
-      req.user = user;
-      return next();
+    // Query the real DB
+    const user = await User.findById(userId).select('-password');
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'Invalid token or user not found.' });
     }
-
-    // Invalid token structure
-    return res.status(401).json({ success: false, message: 'Invalid token.' });
+    
+    req.user = user;
+    return next();
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(401).json({ 
       success: false, 
-      message: 'Token is not valid.' 
+      message: 'Token is not valid or expired.' 
     });
   }
 };
@@ -59,11 +44,14 @@ export const authorize = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Access denied. Authentication required.' 
+        message: 'Authentication required.' 
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = (req.user.role || '').toUpperCase();
+    const allowedRoles = roles.map(r => r.toUpperCase());
+
+    if (roles.length > 0 && !allowedRoles.includes(userRole)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. Insufficient permissions.' 
@@ -73,3 +61,28 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+export const requirePermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required.' 
+      });
+    }
+
+    const userRole = (req.user.role || '').toUpperCase();
+    const permissions = ROLE_PERMISSIONS[userRole] || [];
+
+    if (!permissions.includes('*') && !permissions.includes(permission)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Permission '${permission}' required.` 
+      });
+    }
+
+    next();
+  };
+};
+
+export const requireAnyRole = (...roles) => authorize(...roles);

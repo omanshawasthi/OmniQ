@@ -1,0 +1,16 @@
+{
+  "name": "queueless-root",
+  "version": "1.0.0",
+  "description": "Root control for QueueLess project",
+  "scripts": {
+    "kill-node": "taskkill /F /IM node.exe /T || true",
+    "kill-nodemon": "taskkill /F /IM nodemon.exe /T || true",
+    "clean": "npm run kill-node && npm run kill-nodemon",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "npm run clean && start npm run dev:backend && start npm run dev:frontend",
+    "reset": "npm run clean && echo 'System cleared. You can now run npm run dev'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

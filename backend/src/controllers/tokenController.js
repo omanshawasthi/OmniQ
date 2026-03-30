@@ -104,3 +104,15 @@ export const getTokenStats = asyncHandler(async (req, res) => {
     data: stats
   })
 })
+
+// Get live token status
+export const getTokenLiveStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  
+  const liveStatus = await TokenService.getTokenLiveStatus(id, req.user.role === 'user' ? req.user._id : null)
+
+  res.status(200).json({
+    success: true,
+    data: liveStatus
+  })
+})

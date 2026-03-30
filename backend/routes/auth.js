@@ -4,8 +4,8 @@ import {
   register,
   login,
   refreshToken,
-  getMe
-} from '../controllers/mockAuthController.js';
+  getProfile
+} from '../src/controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -28,7 +28,7 @@ router.post('/login', [
 router.post('/refresh', refreshToken);
 
 // Get current user (both /me and /profile point to same handler)
-router.get('/me', authenticate, getMe);
-router.get('/profile', authenticate, getMe);
+router.get('/me', authenticate, getProfile);
+router.get('/profile', authenticate, getProfile);
 
 export default router;

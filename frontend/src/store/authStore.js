@@ -17,15 +17,20 @@ export const useAuthStore = create(
       login: async (credentials) => {
         set({ isLoading: true })
         try {
-          // api interceptor unwraps data.data → { user, token, refreshToken }
+          // api interceptor unwraps data.data → { user, accessToken, refreshToken }
           const response = await authAPI.login(credentials)
 
           const user = response?.user
-          const token = response?.token || response?.accessToken
+          const token = response?.accessToken || response?.token
           const refreshToken = response?.refreshToken
 
           if (!user || !token) {
             throw new Error('Invalid response from server — missing user or token')
+          }
+
+          // Normalize role to Uppercase for consistent RBAC in frontend
+          if (user.role) {
+            user.role = user.role.toUpperCase()
           }
 
           set({
@@ -48,6 +53,24 @@ export const useAuthStore = create(
         set({ isLoading: true })
         try {
           const response = await authAPI.register(userData)
+          
+          // Auto-login after successful registration
+          const user = response?.user || response?.data?.user
+          const token = response?.accessToken || response?.token || response?.data?.accessToken || response?.data?.token
+          const refreshToken = response?.refreshToken || response?.data?.refreshToken
+
+          if (user && token) {
+            if (user.role) user.role = user.role.toUpperCase()
+            
+            set({
+              user,
+              token,
+              storedRefreshToken: refreshToken ?? null,
+              isAuthenticated: true,
+              isInitialized: true,
+            })
+          }
+
           set({ isLoading: false })
           return response
         } catch (error) {

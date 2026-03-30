@@ -9,7 +9,8 @@ import {
   checkInToken,
   createWalkInToken,
   searchTokens,
-  getTokenStats
+  getTokenStats,
+  getTokenLiveStatus
 } from '../src/controllers/tokenController.js';
 
 const router = express.Router();
@@ -41,6 +42,9 @@ router.get('/queue/:branchId/:departmentId?', getQueueStatus);
 
 // Get token by ID
 router.get('/:id', getToken);
+
+// Get live token status
+router.get('/:id/live', getTokenLiveStatus);
 
 // Check in token
 router.put('/:id/checkin', checkInToken);

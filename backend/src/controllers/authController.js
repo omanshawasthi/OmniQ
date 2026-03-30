@@ -32,14 +32,12 @@ export const register = asyncHandler(async (req, res) => {
     role: role.toLowerCase()
   })
 
+  // Set initial login and save once
+  user.lastLogin = new Date()
   await user.save()
 
   // Generate tokens
   const { accessToken, refreshToken } = generateTokens(user._id, user.role)
-
-  // Update last login
-  user.lastLogin = new Date()
-  await user.save()
 
   res.status(201).json({
     success: true,

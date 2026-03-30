@@ -25,7 +25,10 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   // Check role permissions
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+  const normalizedUserRole = (user?.role || '').toUpperCase()
+  const normalizedAllowedRoles = allowedRoles.map(r => r.toUpperCase())
+  
+  if (allowedRoles.length > 0 && !normalizedAllowedRoles.includes(normalizedUserRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

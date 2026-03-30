@@ -13,7 +13,8 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
-  Share2
+  Share2,
+  Activity
 } from 'lucide-react'
 import { tokenAPI } from '../../utils/api.js'
 import { TokenQRCode } from '../../components/common/QRCodeDisplay.jsx'
@@ -270,7 +271,7 @@ Time: ${formatTime(token?.scheduledTime)}
                 <h3 className="text-lg font-bold mb-1">Need real-time tracking?</h3>
                 <p className="text-indigo-100 text-sm">Open the live tracking map to see exact counter status.</p>
               </div>
-              <Link to={`/token/${id}/live`} className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors whitespace-nowrap">
+              <Link to={`/live-queue/${id}`} className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors whitespace-nowrap">
                 Live Track Queue
               </Link>
             </div>

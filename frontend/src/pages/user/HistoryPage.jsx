@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Activity, Ticket } from 'lucide-react'
 import { tokenAPI } from '../../utils/api'
 
 const HistoryPage = () => {
@@ -257,7 +257,7 @@ const HistoryPage = () => {
                   </Link>
                   {normalizeStatus(token.status) === 'waiting' && (
                     <Link
-                      to={`/token/${token._id}/live`}
+                      to={`/live-queue/${token._id}`}
                       className="flex-1 text-center py-2 px-4 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors"
                     >
                       Live Track

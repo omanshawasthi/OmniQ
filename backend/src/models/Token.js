@@ -219,7 +219,6 @@ tokenSchema.methods.updateStatus = function(newStatus, performedBy, reason = '')
 };
 
 // Index for faster queries
-tokenSchema.index({ tokenNumber: 1 });
 tokenSchema.index({ userId: 1 });
 tokenSchema.index({ branchId: 1, departmentId: 1 });
 tokenSchema.index({ status: 1 });
