@@ -5,35 +5,38 @@ import { authAPI } from '../utils/api'
 export const useAuthStore = create(
   persist(
     (set, get) => ({
-      // State
+      // ── State ──────────────────────────────────────────────────────────────
       user: null,
       token: null,
-      refreshToken: null,
+      storedRefreshToken: null, // avoid name collision with refreshAccessToken action
       isLoading: false,
       isAuthenticated: false,
-      isInitialized: false, // Add initialization state
+      isInitialized: false,
 
-      // Actions
+      // ── Actions ────────────────────────────────────────────────────────────
       login: async (credentials) => {
         set({ isLoading: true })
         try {
+          // api interceptor unwraps data.data → { user, token, refreshToken }
           const response = await authAPI.login(credentials)
-          
-          // The interceptor returns response.data directly
-          if (response && response.user && response.token) {
-            const { user, token, refreshToken } = response
-            set({ 
-              user, 
-              token, 
-              refreshToken, 
-              isLoading: false, 
-              isAuthenticated: true,
-              isInitialized: true
-            })
-          } else {
-            throw new Error('Invalid response structure: missing user or token')
+
+          const user = response?.user
+          const token = response?.token || response?.accessToken
+          const refreshToken = response?.refreshToken
+
+          if (!user || !token) {
+            throw new Error('Invalid response from server — missing user or token')
           }
-          
+
+          set({
+            user,
+            token,
+            storedRefreshToken: refreshToken ?? null,
+            isLoading: false,
+            isAuthenticated: true,
+            isInitialized: true,
+          })
+
           return response
         } catch (error) {
           set({ isLoading: false })
@@ -53,182 +56,86 @@ export const useAuthStore = create(
         }
       },
 
-      logout: async () => {
-        try {
-          // Clear localStorage first
-          localStorage.removeItem('token')
-          localStorage.removeItem('refreshToken')
-          localStorage.removeItem('user')
-          
-          set({
-            user: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isInitialized: true,
-          })
-        } catch (error) {
-          console.error('Logout error:', error)
-          // Still clear auth state even if logout API fails
-          get().clearAuth()
-        }
-      },
-
-      refreshToken: async () => {
-        const { refreshToken } = get()
-        if (!refreshToken) {
-          get().logout()
-          return
-        }
-
-        try {
-          const response = await authAPI.refreshToken(refreshToken)
-          
-          // Handle different response structures
-          let newToken, newRefreshToken;
-          if (response.data) {
-            if (response.data.data) {
-              ({ token: newToken, refreshToken: newRefreshToken } = response.data.data);
-            } else {
-              ({ token: newToken, refreshToken: newRefreshToken } = response.data);
-            }
-          } else {
-            ({ token: newToken, refreshToken: newRefreshToken } = response);
-          }
-          
-          set({
-            token: newToken,
-            refreshToken: newRefreshToken,
-          })
-          
-          // Update localStorage too
-          localStorage.setItem('token', newToken)
-          localStorage.setItem('refreshToken', newRefreshToken)
-          
-          return response
-        } catch (error) {
-          get().logout()
-          throw error
-        }
-      },
-
-      updateProfile: async (userData) => {
-        set({ isLoading: true })
-        try {
-          const response = await authAPI.getMe()
-          
-          // Handle different response structures
-          let updatedUser;
-          if (response.data) {
-            if (response.data.data) {
-              updatedUser = response.data.data.user;
-            } else if (response.data.user) {
-              updatedUser = response.data.user;
-            } else {
-              updatedUser = response.data;
-            }
-          } else {
-            updatedUser = response.user;
-          }
-          
-          set({
-            user: { ...get().user, ...updatedUser },
-            isLoading: false,
-          })
-          
-          return response
-        } catch (error) {
-          set({ isLoading: false })
-          throw error
-        }
-      },
-
-      clearAuth: () => {
-        // Clear localStorage
-        localStorage.removeItem('token')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('user')
-        
+      logout: () => {
         set({
           user: null,
           token: null,
-          refreshToken: null,
+          storedRefreshToken: null,
           isAuthenticated: false,
           isInitialized: true,
         })
       },
 
-      // Initialize auth state from localStorage
-      initializeAuth: () => {
+      // Renamed from 'refreshToken' to prevent collision with the state field
+      refreshAccessToken: async () => {
+        const { storedRefreshToken } = get()
+        if (!storedRefreshToken) {
+          get().logout()
+          return
+        }
         try {
-          const token = localStorage.getItem('token')
-          const refreshToken = localStorage.getItem('refreshToken')
-          const userStr = localStorage.getItem('user')
-          
-          if (token && userStr) {
-            const user = JSON.parse(userStr)
-            set({
-              user,
-              token,
-              refreshToken,
-              isAuthenticated: true,
-              isInitialized: true,
-            })
-          } else {
-            set({ isInitialized: true })
-          }
+          const response = await authAPI.refreshToken(storedRefreshToken)
+          const newToken = response?.token || response?.accessToken
+          const newRefreshToken = response?.refreshToken || storedRefreshToken
+          set({ token: newToken, storedRefreshToken: newRefreshToken })
+          return response
         } catch (error) {
-          console.error('Failed to initialize auth:', error)
-          set({ isInitialized: true })
+          get().logout()
+          throw error
         }
       },
 
-      // Getters
-      hasRole: (role) => {
-        const { user } = get()
-        return user?.role === role
+      clearAuth: () => {
+        set({
+          user: null,
+          token: null,
+          storedRefreshToken: null,
+          isAuthenticated: false,
+          isInitialized: true,
+        })
       },
 
-      hasAnyRole: (roles) => {
-        const { user } = get()
-        return roles.includes(user?.role)
-      },
+      setUser: (user) => set({ user }),
 
-      can: (permission) => {
-        const { user } = get()
-        // This will be implemented based on role permissions
-        const rolePermissions = {
-          user: ['book_token', 'view_queue_status'],
-          staff: ['book_token', 'view_queue_status', 'create_walk_in', 'control_queue'],
-          operator: ['view_queue_status', 'control_queue'],
-          admin: ['*'], // All permissions
-        }
-        
-        const userPermissions = rolePermissions[user?.role] || []
-        return userPermissions.includes('*') || userPermissions.includes(permission)
-      },
+      // ── Getters ────────────────────────────────────────────────────────────
+      hasRole: (role) => get().user?.role === role,
+      hasAnyRole: (roles) => roles.includes(get().user?.role),
     }),
     {
       name: 'queueless-auth',
       storage: {
         getItem: (name) => {
-          const item = localStorage.getItem(name);
-          return item ? JSON.parse(item) : null;
+          try {
+            const item = localStorage.getItem(name)
+            return item ? JSON.parse(item) : null
+          } catch {
+            return null
+          }
         },
         setItem: (name, value) => {
-          localStorage.setItem(name, JSON.stringify(value));
+          localStorage.setItem(name, JSON.stringify(value))
         },
         removeItem: (name) => {
-          localStorage.removeItem(name);
-        }
+          localStorage.removeItem(name)
+        },
       },
+      // Only persist auth-critical fields — never persist isInitialized
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        refreshToken: state.refreshToken,
+        storedRefreshToken: state.storedRefreshToken,
         isAuthenticated: state.isAuthenticated,
-        isInitialized: state.isInitialized,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Always mark initialized after rehydration
+          state.isInitialized = true
+          // Validate: if token or user is missing, clear auth so UI doesn't show stale state
+          if (!state.token || !state.user) {
+            state.isAuthenticated = false
+          }
+        }
+      },
     }
   )
 )

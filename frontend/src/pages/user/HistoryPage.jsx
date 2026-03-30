@@ -16,8 +16,9 @@ const HistoryPage = () => {
   const loadTokens = async () => {
     try {
       // Load real tokens from backend
-      const response = await tokenAPI.getMyTokens()
-      setTokens(response.data.data.tokens || [])
+      const res = await tokenAPI.getMyTokens()
+      // The API interceptor already unwraps to the data object { tokens: [...], total: ... }
+      setTokens(res.tokens || [])
       setIsLoading(false)
     } catch (error) {
       console.error('Error loading tokens:', error)

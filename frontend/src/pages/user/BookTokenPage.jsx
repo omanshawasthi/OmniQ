@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, Clock, Users, CheckCircle } from 'lucide-react'
 import { tokenAPI, branchAPI } from '../../utils/api'
 
@@ -17,6 +17,7 @@ const BookTokenPage = () => {
   const [branches, setBranches] = useState([])
   const [departments, setDepartments] = useState([])
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     loadBookingData()
@@ -33,7 +34,7 @@ const BookTokenPage = () => {
   const loadDepartments = async () => {
     try {
       const departmentsResponse = await branchAPI.getBranchDepartments(formData.branch)
-      setDepartments(departmentsResponse.data.data)
+      setDepartments(departmentsResponse || [])
     } catch (error) {
       console.error('Error loading departments:', error)
       setError('Failed to load departments')
@@ -45,12 +46,12 @@ const BookTokenPage = () => {
       // Load real branches from backend
       const branchesResponse = await branchAPI.getBranches()
       
-      setBranches(branchesResponse.data.data)
+      setBranches(branchesResponse || [])
       
       // Load departments when branch is selected
       if (formData.branch) {
         const departmentsResponse = await branchAPI.getBranchDepartments(formData.branch)
-        setDepartments(departmentsResponse.data.data)
+        setDepartments(departmentsResponse || [])
       }
       
       setLoadingData(false)
@@ -63,7 +64,8 @@ const BookTokenPage = () => {
 
   const getFilteredDepartments = () => {
     if (!formData.branch) return []
-    return departments.filter(dept => dept.branchId === formData.branch)
+    // Departments are already filtered by the API call based on branchId
+    return departments
   }
 
   const handleSubmit = async (e) => {
@@ -84,19 +86,16 @@ const BookTokenPage = () => {
       console.log('Booking token:', bookingData)
       
       // Make real API call to book token
-      const response = await tokenAPI.bookToken(bookingData)
+      const token = await tokenAPI.bookToken(bookingData)
+      const createdTokenData = token?.token || token
       
-      setCreatedToken(response.data.data.token)
+      setCreatedToken(createdTokenData)
       setShowSuccess(true)
       setIsSubmitting(false)
       
-      // Reset form
-      setFormData({
-        serviceType: '',
-        branch: '',
-        priority: 'normal',
-        notes: ''
-      })
+      // Redirect seamlessly to canonical token details screen
+      navigate(`/token/${createdTokenData._id}`)
+
     } catch (error) {
       console.error('Booking error:', error)
       setError(error.response?.data?.message || 'Failed to book token. Please try again.')
@@ -124,38 +123,6 @@ const BookTokenPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-r-2 border-primary-600"></div>
-      </div>
-    )
-  }
-
-  if (showSuccess && createdToken) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Token Booked Successfully!</h2>
-          <div className="mb-6">
-            <p className="text-gray-600 mb-2">Your token has been created</p>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-2xl font-bold text-primary-600">{createdToken.tokenNumber}</p>
-              <p className="text-sm text-gray-600">Estimated wait: {createdToken.estimatedWaitTime} minutes</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <Link
-              to="/user/history"
-              className="block w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-            >
-              View My Tokens
-            </Link>
-            <Link
-              to="/user"
-              className="block w-full inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
       </div>
     )
   }
@@ -265,8 +232,8 @@ const BookTokenPage = () => {
                   <input
                     type="radio"
                     name="priority"
-                    value="priority"
-                    checked={formData.priority === 'priority'}
+                    value="high"
+                    checked={formData.priority === 'high'}
                     onChange={handleInputChange}
                     className="mr-2"
                   />

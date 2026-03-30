@@ -27,7 +27,8 @@ router.post('/login', [
 // Refresh token
 router.post('/refresh', refreshToken);
 
-// Get current user
+// Get current user (both /me and /profile point to same handler)
 router.get('/me', authenticate, getMe);
+router.get('/profile', authenticate, getMe);
 
 export default router;

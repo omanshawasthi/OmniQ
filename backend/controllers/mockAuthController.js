@@ -4,7 +4,7 @@ import logger from '../config/logger.js';
 // Mock user data
 const mockUsers = [
   {
-    _id: '1',
+    _id: '000000000000000000000001',
     name: 'Admin User',
     email: 'admin@queueless.com',
     password: 'admin123',
@@ -15,7 +15,7 @@ const mockUsers = [
     updatedAt: new Date()
   },
   {
-    _id: '2',
+    _id: '000000000000000000000002',
     name: 'Staff User',
     email: 'staff@queueless.com',
     password: 'staff123',
@@ -26,7 +26,7 @@ const mockUsers = [
     updatedAt: new Date()
   },
   {
-    _id: '3',
+    _id: '000000000000000000000003',
     name: 'Operator User',
     email: 'operator@queueless.com',
     password: 'operator123',
@@ -37,7 +37,7 @@ const mockUsers = [
     updatedAt: new Date()
   },
   {
-    _id: '4',
+    _id: '000000000000000000000004',
     name: 'Regular User',
     email: 'user@queueless.com',
     password: 'user123',

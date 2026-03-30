@@ -17,17 +17,27 @@ const router = express.Router();
 // All routes are protected
 router.use(authenticate);
 
+// ── Specific paths FIRST (before /:id wildcard) ──────────────────────────────
+
 // Book online token
 router.post('/book', bookToken);
 
 // Create walk-in token
 router.post('/walk-in', createWalkInToken);
 
-// Get user's tokens
+// Get user's own tokens
 router.get('/my-tokens', getMyTokens);
+
+// Search tokens
+router.get('/search', searchTokens);
+
+// Get token statistics
+router.get('/stats', getTokenStats);
 
 // Get queue status for branch/department
 router.get('/queue/:branchId/:departmentId?', getQueueStatus);
+
+// ── Dynamic :id routes LAST ────────────────────────────────────────────────────
 
 // Get token by ID
 router.get('/:id', getToken);
@@ -37,11 +47,5 @@ router.put('/:id/checkin', checkInToken);
 
 // Cancel token
 router.put('/:id/cancel', cancelToken);
-
-// Search tokens
-router.get('/search', searchTokens);
-
-// Get token statistics
-router.get('/stats', getTokenStats);
 
 export default router;

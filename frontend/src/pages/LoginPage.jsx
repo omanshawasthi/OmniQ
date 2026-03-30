@@ -39,10 +39,10 @@ const LoginPage = () => {
           navigate('/operator')
           break
         case 'USER':
-          navigate('/user')
+          navigate('/dashboard')
           break
         default:
-          navigate('/user')
+          navigate('/dashboard')
       }
     } catch (err) {
       console.error('Login error:', err)

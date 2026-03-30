@@ -7,6 +7,7 @@ import QueueLog from '../models/QueueLog.js'
 import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS } from '../utils/constants.js'
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
+import AppError from '../utils/AppError.js'
 
 export class TokenService {
   // Generate unique token number with concurrency safety
@@ -22,25 +23,29 @@ export class TokenService {
     const counterKey = `${branchId}_${departmentId}_${today.getTime()}`
     
     // Use findOneAndUpdate with upsert for atomic counter increment
-    const counter = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
+    // MongoDB driver v5+ returns document directly (not wrapped in .value)
+    const counterDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
       { key: counterKey },
       { $inc: { sequence: 1 }, $setOnInsert: { key: counterKey, date: today } },
       { upsert: true, returnDocument: 'after' }
     )
     
-    const sequence = counter.value.sequence
+    // Handle both driver versions: v5+ returns doc directly, older returns { value: doc }
+    const counterResult = counterDoc?.value ?? counterDoc
+    const sequence = counterResult?.sequence ?? 1
     const tokenNumber = `${prefix}${String(sequence).padStart(3, '0')}`
     
     // Double-check uniqueness (rare but possible)
     const existingToken = await Token.findOne({ tokenNumber })
     if (existingToken) {
       // If collision occurs, increment again
-      const retryCounter = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
+      const retryDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
         { key: counterKey },
         { $inc: { sequence: 1 } },
         { returnDocument: 'after' }
       )
-      const retrySequence = retryCounter.value.sequence
+      const retryResult = retryDoc?.value ?? retryDoc
+      const retrySequence = retryResult?.sequence ?? sequence + 1
       return `${prefix}${String(retrySequence).padStart(3, '0')}`
     }
     
@@ -87,7 +92,7 @@ export class TokenService {
     })
 
     if (existingToken) {
-      throw new Error('You already have an active token for this department')
+      throw new AppError('You already have an active token for this department', 400)
     }
 
     // Generate token number and QR code
@@ -243,7 +248,12 @@ export class TokenService {
     const query = { userId }
 
     if (status) {
-      query.status = status
+      // Handle comma-separated status strings from frontend ('WAITING,SERVING')
+      if (typeof status === 'string' && status.includes(',')) {
+        query.status = { $in: status.split(',').map(s => s.trim().toUpperCase()) }
+      } else {
+        query.status = typeof status === 'string' ? status.toUpperCase() : status
+      }
     }
 
     if (branchId) {
