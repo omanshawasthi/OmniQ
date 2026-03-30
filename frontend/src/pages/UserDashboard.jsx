@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   Calendar, Clock, CheckCircle, XCircle,
   Ticket, Activity, LogOut, User,
-  AlertCircle, RefreshCw, ChevronRight
+  AlertCircle, RefreshCw, ChevronRight, Loader2
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { dashboardAPI } from '../utils/api'
+import { dashboardAPI, tokenAPI } from '../utils/api'
+import toast from 'react-hot-toast'
+import RescheduleModal from '../components/user/RescheduleModal'
 
 // ─── Token status normalizer (backend uses lowercase) ─────────────────────────
 const ACTIVE_STATUSES = ['waiting', 'serving', 'held']
@@ -81,6 +83,8 @@ const UserDashboard = () => {
   const [activeToken, setActiveToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isRescheduling, setIsRescheduling] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true)
@@ -143,6 +147,30 @@ const UserDashboard = () => {
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const handleCancelToken = async () => {
+    if (!activeToken) return
+    if (!window.confirm('Are you sure you want to cancel this token? This action cannot be undone.')) return
+
+    setIsCancelling(true)
+    try {
+      await tokenAPI.cancelToken(activeToken._id)
+      toast.success('Token cancelled successfully')
+      fetchDashboard()
+    } catch (err) {
+      console.error('Cancel error:', err)
+      toast.error(err.response?.data?.message || 'Failed to cancel token')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const canCancel = (token) => {
+    if (!token) return false
+    const s = normalizeStatus(token.status)
+    // Business rule check usually handled by backend, but we can disable UI if obvious
+    return s === 'waiting' || s === 'held'
   }
 
   // ─── Loading ────────────────────────────────────────────────────────────────
@@ -312,6 +340,25 @@ const UserDashboard = () => {
                   View Details
                   <ChevronRight className="h-4 w-4" />
                 </Link>
+                {normalizeStatus(activeToken.status) === 'waiting' && (
+                  <button
+                    onClick={() => setIsRescheduling(true)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2.5 px-4 rounded-lg transition-colors shadow-sm"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reschedule
+                  </button>
+                )}
+                {canCancel(activeToken) && (
+                  <button
+                    onClick={handleCancelToken}
+                    disabled={isCancelling}
+                    className="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium py-2.5 px-4 rounded-lg transition-colors border border-red-100 disabled:opacity-50"
+                  >
+                    {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                    <span className="hidden sm:inline">Cancel</span>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -388,6 +435,13 @@ const UserDashboard = () => {
           </div>
         </section>
       </main>
+
+      <RescheduleModal
+        isOpen={isRescheduling}
+        onClose={() => setIsRescheduling(false)}
+        token={activeToken}
+        onRescheduleSuccess={fetchDashboard}
+      />
     </div>
   )
 }

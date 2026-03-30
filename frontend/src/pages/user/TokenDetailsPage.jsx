@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import RescheduleModal from '../../components/user/RescheduleModal'
 import { 
   ArrowLeft, 
   QrCode, 
@@ -25,6 +27,9 @@ const TokenDetailsPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showPrintView, setShowPrintView] = useState(false)
+  const [isRescheduling, setIsRescheduling] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     loadTokenDetails()
@@ -104,6 +109,29 @@ Time: ${formatTime(token?.scheduledTime)}
     a.href = url
     a.download = `token-${token?.tokenNumber}.txt`
     a.click()
+  }
+
+  const handleCancelToken = async () => {
+    if (!token) return
+    if (!window.confirm('Are you sure you want to cancel this token? This action cannot be undone.')) return
+
+    setIsCancelling(true)
+    try {
+      await tokenAPI.cancelToken(token._id)
+      toast.success('Token cancelled successfully')
+      loadTokenDetails()
+    } catch (err) {
+      console.error('Cancel error:', err)
+      toast.error(err.response?.data?.message || 'Failed to cancel token')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const canCancel = (token) => {
+    if (!token) return false
+    const s = normalizeStatus(token.status)
+    return s === 'waiting' || s === 'held'
   }
 
   const handleShare = async () => {
@@ -275,6 +303,34 @@ Time: ${formatTime(token?.scheduledTime)}
                 Live Track Queue
               </Link>
             </div>
+
+            {normalizeStatus(token.status) === 'waiting' && (
+              <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">MANAGE TOKEN</h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => setIsRescheduling(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-white border border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-sm"
+                  >
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                    Reschedule Appointment
+                  </button>
+                  {canCancel(token) && (
+                    <button
+                      onClick={handleCancelToken}
+                      disabled={isCancelling}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all border border-red-100 disabled:opacity-50 shadow-sm shadow-red-100/50"
+                    >
+                      {isCancelling ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="h-5 w-5" />}
+                      Cancel Token
+                    </button>
+                  )}
+                </div>
+                <p className="mt-4 text-[11px] text-gray-400 text-center">
+                  Changes to tokens are only allowed according to business policies. Rescheduling updates your wait time based on the new slot.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -310,6 +366,13 @@ Time: ${formatTime(token?.scheduledTime)}
 
         </div>
       </main>
+
+      <RescheduleModal
+        isOpen={isRescheduling}
+        onClose={() => setIsRescheduling(false)}
+        token={token}
+        onRescheduleSuccess={loadTokenDetails}
+      />
     </div>
   )
 }

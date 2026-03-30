@@ -4,7 +4,7 @@ import Branch from '../models/Branch.js'
 import Department from '../models/Department.js'
 import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
-import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS } from '../utils/constants.js'
+import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS, QUEUE_ACTIONS } from '../utils/constants.js'
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
 import AppError from '../utils/AppError.js'
@@ -23,22 +23,19 @@ export class TokenService {
     const counterKey = `${branchId}_${departmentId}_${today.getTime()}`
     
     // Use findOneAndUpdate with upsert for atomic counter increment
-    // MongoDB driver v5+ returns document directly (not wrapped in .value)
     const counterDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
       { key: counterKey },
       { $inc: { sequence: 1 }, $setOnInsert: { key: counterKey, date: today } },
       { upsert: true, returnDocument: 'after' }
     )
     
-    // Handle both driver versions: v5+ returns doc directly, older returns { value: doc }
     const counterResult = counterDoc?.value ?? counterDoc
     const sequence = counterResult?.sequence ?? 1
     const tokenNumber = `${prefix}${String(sequence).padStart(3, '0')}`
     
-    // Double-check uniqueness (rare but possible)
+    // Double-check uniqueness
     const existingToken = await Token.findOne({ tokenNumber })
     if (existingToken) {
-      // If collision occurs, increment again
       const retryDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
         { key: counterKey },
         { $inc: { sequence: 1 } },
@@ -97,7 +94,7 @@ export class TokenService {
 
     // Generate token number and QR code
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
-    const qrCode = await this.generateQRCode('temp') // Will be updated after token creation
+    const qrCode = await this.generateQRCode('temp')
 
     // Create token
     const token = new Token({
@@ -111,7 +108,7 @@ export class TokenService {
       scheduledTime,
       notes,
       qrCode,
-      estimatedWaitTime: 0 // Will be calculated by queue service
+      estimatedWaitTime: 0
     })
 
     await token.save()
@@ -123,7 +120,7 @@ export class TokenService {
     // Log token creation
     await QueueLog.logAction({
       tokenId: token._id,
-      action: 'created',
+      action: QUEUE_ACTIONS.CREATED,
       performedBy: userId,
       metadata: {
         bookingType: BOOKING_TYPE.ONLINE,
@@ -132,7 +129,6 @@ export class TokenService {
       }
     })
 
-    // Populate related data
     await token.populate([
       { path: 'userId', select: 'name email phone' },
       { path: 'branchId', select: 'name address phone' },
@@ -146,7 +142,6 @@ export class TokenService {
   static async createWalkInToken(tokenData, createdBy) {
     const { branchId, departmentId, userId, name, email, phone, priority = TOKEN_PRIORITY.NORMAL, notes } = tokenData
 
-    // Validate branch and department
     const branch = await Branch.findById(branchId)
     if (!branch || !branch.isActive) {
       throw new Error('Branch not found or inactive')
@@ -157,21 +152,16 @@ export class TokenService {
       throw new Error('Department not found or inactive')
     }
 
-    // Check if department allows walk-in
     if (!department.settings.allowWalkIn) {
       throw new Error('Walk-in not allowed for this department')
     }
 
-    let user = null
-
-    // If userId provided, validate user
     if (userId) {
-      user = await User.findById(userId)
+      const user = await User.findById(userId)
       if (!user || !user.isActive) {
         throw new Error('User not found or inactive')
       }
 
-      // Check for existing active token
       const existingToken = await Token.findOne({
         userId,
         departmentId,
@@ -183,11 +173,9 @@ export class TokenService {
       }
     }
 
-    // Generate token number and QR code
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
-    const qrCode = await this.generateQRCode('temp') // Will be updated after token creation
+    const qrCode = await this.generateQRCode('temp')
 
-    // Create token
     const token = new Token({
       tokenNumber,
       userId: userId || null,
@@ -199,10 +187,9 @@ export class TokenService {
       scheduledTime: new Date(),
       notes,
       qrCode,
-      estimatedWaitTime: 0 // Will be calculated by queue service
+      estimatedWaitTime: 0
     })
 
-    // Add metadata for walk-in without user
     if (!userId) {
       token.metadata = {
         ...token.metadata,
@@ -213,15 +200,12 @@ export class TokenService {
     }
 
     await token.save()
-
-    // Update QR code with actual token ID
     token.qrCode = await this.generateQRCode(token._id)
     await token.save()
 
-    // Log token creation
     await QueueLog.logAction({
       tokenId: token._id,
-      action: 'created',
+      action: QUEUE_ACTIONS.CREATED,
       performedBy: createdBy._id,
       metadata: {
         bookingType: BOOKING_TYPE.WALK_IN,
@@ -231,7 +215,6 @@ export class TokenService {
       }
     })
 
-    // Populate related data
     await token.populate([
       { path: 'userId', select: 'name email phone' },
       { path: 'branchId', select: 'name address phone' },
@@ -244,11 +227,9 @@ export class TokenService {
   // Get user's tokens
   static async getUserTokens(userId, options = {}) {
     const { status, branchId, departmentId, date, page = 1, limit = 20 } = options
-
     const query = { userId }
 
     if (status) {
-      // Handle comma-separated status strings from frontend ('WAITING,SERVING')
       if (typeof status === 'string' && status.includes(',')) {
         query.status = { $in: status.split(',').map(s => s.trim().toUpperCase()) }
       } else {
@@ -256,13 +237,8 @@ export class TokenService {
       }
     }
 
-    if (branchId) {
-      query.branchId = branchId
-    }
-
-    if (departmentId) {
-      query.departmentId = departmentId
-    }
+    if (branchId) query.branchId = branchId
+    if (departmentId) query.departmentId = departmentId
 
     if (date) {
       const startOfDay = new Date(date)
@@ -293,11 +269,7 @@ export class TokenService {
   // Get token by ID
   static async getTokenById(tokenId, userId = null) {
     const query = { _id: tokenId }
-
-    // If userId provided, ensure user owns the token
-    if (userId) {
-      query.userId = userId
-    }
+    if (userId) query.userId = userId
 
     const token = await Token.findOne(query)
       .populate('userId', 'name email phone')
@@ -321,18 +293,52 @@ export class TokenService {
     }
 
     if (!token.canBeCancelled()) {
-      throw new Error('Token cannot be cancelled')
+      throw new AppError('Token cannot be cancelled at this time', 400)
     }
 
     const statusUpdate = token.updateStatus(TOKEN_STATUS.CANCELLED, userId)
     await token.save()
 
-    // Log cancellation
     await QueueLog.logAction({
       tokenId: token._id,
-      action: 'cancelled',
+      action: QUEUE_ACTIONS.CANCELLED,
       performedBy: userId,
       metadata: statusUpdate.metadata
+    })
+
+    return token
+  }
+
+  // Reschedule token
+  static async rescheduleToken(tokenId, userId, newScheduledTime) {
+    const token = await Token.findOne({ _id: tokenId, userId })
+
+    if (!token) {
+      throw new AppError('Token not found or unauthorized access', 404)
+    }
+
+    if (![TOKEN_STATUS.WAITING, TOKEN_STATUS.HELD].includes(token.status)) {
+      throw new AppError(`Token in ${token.status} status cannot be rescheduled`, 400)
+    }
+
+    const scheduledDate = new Date(newScheduledTime)
+    if (isNaN(scheduledDate.getTime()) || scheduledDate < new Date()) {
+      throw new AppError('Invalid reschedule time. Must be a valid date in the future.', 400)
+    }
+
+    const oldTime = token.scheduledTime
+    token.scheduledTime = scheduledDate
+    
+    await token.save()
+
+    await QueueLog.logAction({
+      tokenId: token._id,
+      action: QUEUE_ACTIONS.RESCHEDULED,
+      performedBy: userId,
+      metadata: {
+        oldScheduledTime: oldTime,
+        newScheduledTime: scheduledDate
+      }
     })
 
     return token
@@ -341,9 +347,7 @@ export class TokenService {
   // Search tokens
   static async searchTokens(searchQuery, options = {}) {
     const { query, branchId, departmentId, status, date, page = 1, limit = 20 } = options
-
-    // Build search query
-    const searchRegex = new RegExp(query, 'i')
+    const searchRegex = new RegExp(query || searchQuery, 'i')
     const mongoQuery = {
       $or: [
         { tokenNumber: { $regex: searchRegex } },
@@ -352,17 +356,9 @@ export class TokenService {
       ]
     }
 
-    if (branchId) {
-      mongoQuery.branchId = branchId
-    }
-
-    if (departmentId) {
-      mongoQuery.departmentId = departmentId
-    }
-
-    if (status) {
-      mongoQuery.status = status
-    }
+    if (branchId) mongoQuery.branchId = branchId
+    if (departmentId) mongoQuery.departmentId = departmentId
+    if (status) mongoQuery.status = status
 
     if (date) {
       const startOfDay = new Date(date)
@@ -394,16 +390,10 @@ export class TokenService {
   // Get token statistics
   static async getTokenStatistics(filters = {}) {
     const { branchId, departmentId, date } = filters
-
     const matchStage = {}
 
-    if (branchId) {
-      matchStage.branchId = branchId
-    }
-
-    if (departmentId) {
-      matchStage.departmentId = departmentId
-    }
+    if (branchId) matchStage.branchId = branchId
+    if (departmentId) matchStage.departmentId = departmentId
 
     if (date) {
       const startOfDay = new Date(date)
@@ -447,7 +437,7 @@ export class TokenService {
       bookingTypeStats: bookingTypeStats.reduce((acc, stat) => {
         acc[stat._id] = stat.count
         return acc
-       }, {})
+      }, {})
     }
   }
 
@@ -460,25 +450,17 @@ export class TokenService {
     }
 
     const { branchId, departmentId, status, priority, scheduledTime, createdAt } = token
-
-    // 1. Calculate Position and People Ahead
     let position = 0
     let peopleAhead = 0
 
     if (status === TOKEN_STATUS.WAITING) {
-      // Logic for position: count tokens that would be served before this one
-      // High priority > Normal priority
-      // Earlier scheduledTime > Later scheduledTime
-      // Earlier createdAt > Later createdAt
       const aheadCount = await Token.countDocuments({
         branchId,
         departmentId,
         status: TOKEN_STATUS.WAITING,
         _id: { $ne: tokenId },
         $or: [
-          // Higher priority always wins
           { priority: TOKEN_PRIORITY.HIGH, priority: { $ne: priority } },
-          // Same priority, but earlier scheduled time
           { 
             priority, 
             $or: [
@@ -488,15 +470,13 @@ export class TokenService {
           }
         ]
       })
-
       position = aheadCount + 1
       peopleAhead = aheadCount
     } else if (status === TOKEN_STATUS.SERVING) {
-      position = 0 // Currently being served
+      position = 0
       peopleAhead = 0
     }
 
-    // 2. Identify Currently Serving Token in the Department
     const activeCounter = await Counter.findOne({
       branchId,
       departmentId,
@@ -505,9 +485,6 @@ export class TokenService {
     }).populate('currentToken', 'tokenNumber')
 
     const currentlyServing = activeCounter ? activeCounter.currentToken : null
-
-    // 3. Queue Status (Active/Paused)
-    // We'll consider it "Active" if at least one counter is active
     const counters = await Counter.find({ branchId, departmentId })
     const isQueuePaused = counters.length > 0 && counters.every(c => c.status === COUNTER_STATUS.PAUSED)
     const isQueueClosed = counters.length === 0 || counters.every(c => c.status === COUNTER_STATUS.OFFLINE)
@@ -523,7 +500,7 @@ export class TokenService {
       currentlyServing,
       queueStatus,
       estimatedWaitTime: token.estimatedWaitTime || 0,
-      refreshInterval: 30000 // Strategy: 30s fallback polling if socket fails
+      refreshInterval: 30000
     }
   }
 }

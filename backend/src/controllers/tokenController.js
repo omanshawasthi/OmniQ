@@ -60,6 +60,20 @@ export const cancelToken = asyncHandler(async (req, res) => {
   })
 })
 
+// Reschedule token
+export const rescheduleToken = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { scheduledTime } = req.body
+  
+  const token = await TokenService.rescheduleToken(id, req.user._id, scheduledTime)
+
+  res.status(200).json({
+    success: true,
+    message: 'Token rescheduled successfully',
+    data: { token }
+  })
+})
+
 // Get queue status
 export const getQueueStatus = asyncHandler(async (req, res) => {
   const { branchId, departmentId } = req.params

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Activity, Ticket } from 'lucide-react'
+import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Activity, Ticket, Calendar, Loader2 } from 'lucide-react'
 import { tokenAPI } from '../../utils/api'
+import toast from 'react-hot-toast'
+import RescheduleModal from '../../components/user/RescheduleModal'
 
 const HistoryPage = () => {
   const [tokens, setTokens] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingTokenId, setCancellingTokenId] = useState(null)
+  const [reschedulingToken, setReschedulingToken] = useState(null)
   const [activeTab, setActiveTab] = useState('ALL')
 
   const TABS = [
@@ -56,9 +59,12 @@ const HistoryPage = () => {
           ? { ...token, status: 'CANCELLED' }
           : token
       ))
+      toast.success('Token cancelled successfully')
     } catch (error) {
       console.error('Error cancelling token:', error)
-      setError(error.response?.data?.message || 'Failed to cancel token')
+      const msg = error.response?.data?.message || 'Failed to cancel token'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setCancellingTokenId(null)
     }
@@ -263,6 +269,15 @@ const HistoryPage = () => {
                       Live Track
                     </Link>
                   )}
+                  {normalizeStatus(token.status) === 'waiting' && (
+                    <button
+                      onClick={() => setReschedulingToken(token)}
+                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                      title="Reschedule Token"
+                    >
+                      <Calendar className="h-5 w-5" />
+                    </button>
+                  )}
                   {canCancelToken(token) && (
                     <button
                       onClick={() => handleCancelToken(token._id)}
@@ -270,7 +285,7 @@ const HistoryPage = () => {
                       className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
                       title="Cancel Token"
                     >
-                      <XCircle className="h-5 w-5" />
+                      {cancellingTokenId === token._id ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="h-5 w-5" />}
                     </button>
                   )}
                 </div>
@@ -279,6 +294,13 @@ const HistoryPage = () => {
           </div>
         )}
       </main>
+
+      <RescheduleModal
+        isOpen={!!reschedulingToken}
+        onClose={() => setReschedulingToken(null)}
+        token={reschedulingToken}
+        onRescheduleSuccess={loadTokens}
+      />
     </div>
   )
 }

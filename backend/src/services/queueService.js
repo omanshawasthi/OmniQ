@@ -332,7 +332,7 @@ export class QueueService {
     // Log action
     await QueueLog.logAction({
       tokenId: token._id,
-      action: QUEUE_ACTIONS.CHECKED_IN,
+      action: QUEUE_ACTIONS.CHECK_IN,
       performedBy,
       metadata: {
         checkedInAt: token.checkedInAt

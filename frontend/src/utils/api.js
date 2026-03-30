@@ -125,8 +125,9 @@ export const tokenAPI = {
   getMyTokens: (params) => api.get('/tokens/my-tokens', { params }),
   getToken: (tokenId) => api.get(`/tokens/${tokenId}`),
   getTokenLiveStatus: (tokenId) => api.get(`/tokens/${tokenId}/live`),
-  cancelToken: (tokenId) => api.put(`/tokens/${tokenId}/cancel`),
-  checkInToken: (tokenId) => api.put(`/tokens/${tokenId}/checkin`),
+  cancelToken: (tokenId) => api.patch(`/tokens/${tokenId}/cancel`),
+  rescheduleToken: (tokenId, scheduledTime) => api.patch(`/tokens/${tokenId}/reschedule`, { scheduledTime }),
+  checkInToken: (tokenId) => api.patch(`/tokens/${tokenId}/checkin`),
   getQueueStatus: (branchId, departmentId) =>
     api.get(`/tokens/queue/${branchId}${departmentId ? `/${departmentId}` : ''}`),
   searchTokens: (params) => api.get('/tokens/search', { params }),

@@ -10,7 +10,8 @@ import {
   createWalkInToken,
   searchTokens,
   getTokenStats,
-  getTokenLiveStatus
+  getTokenLiveStatus,
+  rescheduleToken
 } from '../src/controllers/tokenController.js';
 
 const router = express.Router();
@@ -47,9 +48,12 @@ router.get('/:id', getToken);
 router.get('/:id/live', getTokenLiveStatus);
 
 // Check in token
-router.put('/:id/checkin', checkInToken);
+router.patch('/:id/checkin', checkInToken);
 
 // Cancel token
-router.put('/:id/cancel', cancelToken);
+router.patch('/:id/cancel', cancelToken);
+
+// Reschedule token
+router.patch('/:id/reschedule', rescheduleToken);
 
 export default router;
