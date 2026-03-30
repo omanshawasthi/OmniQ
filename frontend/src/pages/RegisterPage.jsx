@@ -37,18 +37,29 @@ const RegisterPage = () => {
         return
       }
       
-      // Remove confirmPassword from API call
-      const { confirmPassword, ...registrationData } = formData
+      // Normalize data: role to lowercase, remove confirmPassword
+      const registrationData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        password: formData.password,
+        role: formData.role.toLowerCase()
+      }
       
       const response = await authAPI.register(registrationData)
       
-      // Store tokens
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('refreshToken', response.data.refreshToken)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
+      // The API utility (api.js) already unwraps response.data.data
+      // We expect response to have { accessToken, refreshToken, user }
+      const accessToken = response.accessToken || response.data?.accessToken
+      const refreshToken = response.refreshToken || response.data?.refreshToken
+      const user = response.user || response.data?.user
+      
+      if (accessToken) localStorage.setItem('token', accessToken)
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
+      if (user) localStorage.setItem('user', JSON.stringify(user))
       
       // Redirect based on user role
-      const userRole = response.data.user.role
+      const userRole = (user?.role || '').toUpperCase()
       switch (userRole) {
         case 'ADMIN':
           navigate('/admin')
@@ -142,7 +153,6 @@ const RegisterPage = () => {
                   id="phone"
                   name="phone"
                   type="tel"
-                  required
                   value={formData.phone}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"

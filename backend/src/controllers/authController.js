@@ -7,9 +7,14 @@ export const register = asyncHandler(async (req, res) => {
   const { name, email, phone, password, role = 'user' } = req.body
 
   // Check if user already exists
-  const existingUser = await User.findOne({ 
-    $or: [{ email }, { phone: phone && phone !== '' ? phone : null }] 
-  })
+  const query = { email }
+  if (phone && phone.trim() !== '') {
+    query.$or = [{ email }, { phone: phone.trim() }]
+  }
+
+  const existingUser = await User.findOne(phone && phone.trim() !== '' ? { 
+    $or: [{ email }, { phone: phone.trim() }] 
+  } : { email })
 
   if (existingUser) {
     return res.status(400).json({
@@ -22,9 +27,9 @@ export const register = asyncHandler(async (req, res) => {
   const user = new User({
     name,
     email,
-    phone,
+    phone: phone && phone.trim() !== '' ? phone.trim() : null,
     password,
-    role
+    role: role.toLowerCase()
   })
 
   await user.save()

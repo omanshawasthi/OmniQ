@@ -39,9 +39,9 @@ const TokenDetailsPage = () => {
     } catch (err) {
       console.error('Token details load error:', err)
       if (err.response?.status === 404) {
-        setError('Token not found')
+        setError('TOKEN_NOT_FOUND')
       } else if (err.response?.status === 403) {
-        setError('You do not have permission to view this token')
+        setError('ACCESS_DENIED')
       } else {
         setError('Failed to load token details. Please try again.')
       }
@@ -51,9 +51,8 @@ const TokenDetailsPage = () => {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
+    if (!dateString) return '—'
+    return new Date(dateString).toLocaleDateString('en-IN', { 
       weekday: 'long',
       year: 'numeric', 
       month: 'long', 
@@ -62,94 +61,62 @@ const TokenDetailsPage = () => {
   }
 
   const formatTime = (dateString) => {
-    if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', { 
+    if (!dateString) return '—'
+    return new Date(dateString).toLocaleTimeString('en-IN', { 
       hour: '2-digit', 
       minute: '2-digit' 
     })
   }
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'waiting': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-      case 'serving': return 'text-blue-600 bg-blue-50 border-blue-200'
-      case 'completed': return 'text-green-600 bg-green-50 border-green-200'
-      case 'cancelled': return 'text-red-600 bg-red-50 border-red-200'
-      case 'held': return 'text-orange-600 bg-orange-50 border-orange-200'
-      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+  const normalizeStatus = (s) => (s || '').toLowerCase()
+
+  const getStatusInfo = (status) => {
+    const s = normalizeStatus(status)
+    switch (s) {
+      case 'waiting': return { label: 'Waiting', color: 'text-yellow-600 bg-yellow-50 border-yellow-200', icon: <Clock className="h-5 w-5" /> }
+      case 'serving': return { label: 'Now Serving', color: 'text-green-600 bg-green-50 border-green-200', icon: <Activity className="h-5 w-5" /> }
+      case 'completed': return { label: 'Completed', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: <CheckCircle className="h-5 w-5" /> }
+      case 'cancelled': return { label: 'Cancelled', color: 'text-red-600 bg-red-50 border-red-200', icon: <XCircle className="h-5 w-5" /> }
+      case 'held': return { label: 'On Hold', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: <AlertCircle className="h-5 w-5" /> }
+      case 'missed': return { label: 'Missed', color: 'text-gray-600 bg-gray-50 border-gray-200', icon: <XCircle className="h-5 w-5" /> }
+      default: return { label: status || 'Unknown', color: 'text-gray-600 bg-gray-50 border-gray-200', icon: <Clock className="h-5 w-5" /> }
     }
   }
 
-  const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'completed': return <CheckCircle className="h-5 w-5" />
-      case 'cancelled': return <XCircle className="h-5 w-5" />
-      case 'serving': return <AlertCircle className="h-5 w-5" />
-      default: return <Clock className="h-5 w-5" />
-    }
-  }
-
-  const handlePrint = () => {
-    window.print()
-  }
+  const handlePrint = () => window.print()
 
   const handleDownload = () => {
-    // Create a simple text representation of the token
     const tokenText = `
 QUEUELESS TOKEN
 ================
-
 Token Number: ${token?.tokenNumber}
-Status: ${token?.status?.toUpperCase()}
+Status: ${token?.status}
+Service: ${token?.departmentId?.name}
+Branch: ${token?.branchId?.name}
 Date: ${formatDate(token?.scheduledTime)}
 Time: ${formatTime(token?.scheduledTime)}
-
-Branch: ${token?.branch?.name}
-Address: ${token?.branch?.address}
-Phone: ${token?.branch?.phone}
-
-Department: ${token?.department?.name}
-
-User: ${token?.user?.name}
-Email: ${token?.user?.email}
-Phone: ${token?.user?.phone}
-
-Booking ID: ${token?._id}
-Created: ${formatDate(token?.createdAt)}
-
 ================
-Generated on: ${new Date().toLocaleString()}
     `.trim()
-
-    // Create blob and download
     const blob = new Blob([tokenText], { type: 'text/plain' })
-    const url = window.URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `token-${token?.tokenNumber}.txt`
-    document.body.appendChild(a)
     a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
   }
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Queueless Token ${token?.tokenNumber}`,
-          text: `My token number is ${token?.tokenNumber} for ${token?.department?.name} at ${token?.branch?.name} on ${formatDate(token?.scheduledTime)}.`,
+          title: `Token ${token?.tokenNumber}`,
+          text: `My token is ${token?.tokenNumber} for ${token?.departmentId?.name}.`,
           url: window.location.href
         })
-      } catch (err) {
-        console.log('Share cancelled or failed')
-      }
+      } catch (err) {}
     } else {
-      // Fallback: copy to clipboard
-      const shareText = `My token number is ${token?.tokenNumber} for ${token?.department?.name} at ${token?.branch?.name} on ${formatDate(token?.scheduledTime)}.`
-      navigator.clipboard.writeText(shareText)
-      alert('Token details copied to clipboard!')
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copied!')
     }
   }
 
@@ -157,32 +124,34 @@ Generated on: ${new Date().toLocaleString()}
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading token details...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-500 animate-pulse">Fetching token security check...</p>
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error === 'TOKEN_NOT_FOUND' || error === 'ACCESS_DENIED') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="space-y-3">
-            <button
-              onClick={loadTokenDetails}
-              className="block w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-            >
-              Retry
-            </button>
-            <Link
-              to="/user"
-              className="block w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-center"
-            >
-              Back to Dashboard
+      <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
+        <div className="max-w-md">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            {error === 'TOKEN_NOT_FOUND' ? <XCircle className="h-10 w-10 text-red-500" /> : <AlertCircle className="h-10 w-10 text-red-500" />}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {error === 'TOKEN_NOT_FOUND' ? 'Token Not Found' : 'Access Denied'}
+          </h2>
+          <p className="text-gray-500 mb-8">
+            {error === 'TOKEN_NOT_FOUND' 
+              ? "The token ID you are looking for does not exist or has been removed." 
+              : "You don't have permission to view this token. Tokens are private to the account that booked them."}
+          </p>
+          <div className="flex flex-col gap-3">
+            <Link to="/user/my-tokens" className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+              Go to My Tokens
+            </Link>
+            <Link to="/user" className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">
+              User Dashboard
             </Link>
           </div>
         </div>
@@ -190,306 +159,171 @@ Generated on: ${new Date().toLocaleString()}
     )
   }
 
-  if (!token) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <XCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Token Not Found</h2>
-          <p className="text-gray-600 mb-6">The token you're looking for doesn't exist.</p>
-          <Link
-            to="/user"
-            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-          >
-            Back to Dashboard
-          </Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border text-center max-w-sm">
+          <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button onClick={loadTokenDetails} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Try Again</button>
         </div>
       </div>
     )
   }
 
-  // Print View Component
-  if (showPrintView) {
-    return (
-      <div className="min-h-screen bg-white p-8 print:p-4">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">QUEUELESS TOKEN</h1>
-            <p className="text-gray-600">Smart Queue Management System</p>
-          </div>
+  const sInfo = getStatusInfo(token.status)
+  const isWaiting = normalizeStatus(token.status) === 'waiting'
+  const isServing = normalizeStatus(token.status) === 'serving'
 
-          {/* Token Card */}
-          <div className="border-2 border-gray-300 rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">{token.tokenNumber}</h2>
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(token.status)}`}>
-                  {getStatusIcon(token.status)}
-                  <span className="ml-1">{token.status?.charAt(0).toUpperCase() + token.status?.slice(1)}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Booking ID</p>
-                <p className="font-mono text-sm">{token._id}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Date</p>
-                <p className="font-semibold">{formatDate(token.scheduledTime)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Time</p>
-                <p className="font-semibold">{formatTime(token.scheduledTime)}</p>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-1">Branch</p>
-                <p className="font-semibold">{token.branch?.name}</p>
-                <p className="text-sm text-gray-600">{token.branch?.address}</p>
-              </div>
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-1">Department</p>
-                <p className="font-semibold">{token.department?.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Customer</p>
-                <p className="font-semibold">{token.user?.name}</p>
-                <p className="text-sm text-gray-600">{token.user?.phone}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* QR Code Placeholder */}
-          <div className="text-center mb-6">
-            <div className="inline-block border-2 border-gray-300 rounded-lg p-4">
-              <QrCode className="h-32 w-32 text-gray-400" />
-              <p className="text-sm text-gray-600 mt-2">Scan for details</p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center text-sm text-gray-600">
-            <p>Generated on {new Date().toLocaleString()}</p>
-            <p>Please bring this token when you visit</p>
-          </div>
-        </div>
-
-        <div className="no-print mt-8 text-center">
-          <button
-            onClick={() => setShowPrintView(false)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-          >
-            Close Print View
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const steps = [
+    { id: 'booked', label: 'Booked', done: true },
+    { id: 'waiting', label: 'Waiting', done: ['waiting', 'serving', 'completed'].includes(normalizeStatus(token.status)) },
+    { id: 'serving', label: 'Serving', done: ['serving', 'completed'].includes(normalizeStatus(token.status)) },
+    { id: 'completed', label: 'Done', done: normalizeStatus(token.status) === 'completed' }
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/user" className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Link>
-              <h1 className="text-xl font-semibold text-gray-900">Token Details</h1>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleShare}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                title="Share token"
-              >
-                <Share2 className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleDownload}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                title="Download token"
-              >
-                <Download className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handlePrint}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                title="Print token"
-              >
-                <Printer className="h-5 w-5" />
-              </button>
-            </div>
+      <div className="hidden print:block text-center mb-8">
+        <h1 className="text-2xl font-bold">QUEUELESS TOKEN</h1>
+        <p className="text-gray-500">Service Confirmation</p>
+      </div>
+
+      <header className="bg-white border-b sticky top-0 z-10 no-print">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/user/my-tokens" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-500" />
+            </Link>
+            <h1 className="text-lg font-bold text-gray-900">Token Detail</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleShare} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><Share2 className="h-5 w-5" /></button>
+            <button onClick={handleDownload} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><Download className="h-5 w-5" /></button>
+            <button onClick={handlePrint} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><Printer className="h-5 w-5" /></button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Token Card */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6">
-                {/* Token Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">{token.tokenNumber}</h2>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(token.status)}`}>
-                      {getStatusIcon(token.status)}
-                      <span className="ml-1">{token.status?.charAt(0).toUpperCase() + token.status?.slice(1)}</span>
-                    </div>
+          
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                  <div className="text-center md:text-left">
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">YOUR TOKEN NUMBER</p>
+                    <h2 className="text-6xl font-black text-blue-600 tracking-tight">{token.tokenNumber}</h2>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Booking ID</p>
-                    <p className="font-mono text-sm">{token._id}</p>
-                  </div>
-                </div>
-
-                {/* Token Details Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Date & Time */}
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <Calendar className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Date</p>
-                        <p className="font-semibold text-gray-900">{formatDate(token.scheduledTime)}</p>
-                      </div>
+                  <div className="flex flex-col items-center md:items-end gap-2">
+                    <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold border ${sInfo.color}`}>
+                      {sInfo.icon}
+                      {sInfo.label}
                     </div>
-                    <div className="flex items-center">
-                      <Clock className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Time</p>
-                        <p className="font-semibold text-gray-900">{formatTime(token.scheduledTime)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
-                      <div>
-                        <p className="text-sm text-gray-600">Branch</p>
-                        <p className="font-semibold text-gray-900">{token.branch?.name}</p>
-                        <p className="text-sm text-gray-600">{token.branch?.address}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-600">Department</p>
-                        <p className="font-semibold text-gray-900">{token.department?.name}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Additional Information */}
-                <div className="border-t mt-6 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Created On</p>
-                      <p className="font-medium text-gray-900">{formatDate(token.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Booking Type</p>
-                      <p className="font-medium text-gray-900 capitalize">{token.bookingType || 'Online'}</p>
-                    </div>
-                    {token.notes && (
-                      <div className="md:col-span-2">
-                        <p className="text-sm text-gray-600">Notes</p>
-                        <p className="font-medium text-gray-900">{token.notes}</p>
-                      </div>
+                    {isWaiting && (
+                      <span className="text-xs font-medium text-blue-600 animate-pulse">Refresh to update position</span>
                     )}
                   </div>
                 </div>
+
+                {(isWaiting || isServing) && (
+                  <div className="grid grid-cols-2 gap-4 mb-10">
+                    <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                      <p className="text-xs font-bold text-blue-400 uppercase mb-1">POSITION</p>
+                      <p className="text-3xl font-black text-blue-700">{token.queuePosition || '—'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase mb-1">EST. WAIT</p>
+                      <p className="text-3xl font-black text-gray-700">{token.estimatedWaitTime || '0'}<span className="text-sm font-bold ml-1">MIN</span></p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="relative mb-10 px-2 no-print">
+                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -translate-y-1/2"></div>
+                  <div className="relative flex justify-between">
+                    {steps.map((step) => (
+                      <div key={step.id} className="flex flex-col items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border-2 z-10 ${step.done ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-200'}`}></div>
+                        <span className={`text-[10px] font-bold uppercase tracking-tighter ${step.done ? 'text-blue-600' : 'text-gray-400'}`}>{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-100">
+                  <div className="space-y-6">
+                    <DetailItem icon={<MapPin className="text-blue-500" />} label="Service Location" value={token.branchId?.name} subValue={token.branchId?.address} />
+                    <DetailItem icon={<Activity className="text-blue-500" />} label="Department" value={token.departmentId?.name} />
+                  </div>
+                  <div className="space-y-6">
+                    <DetailItem icon={<Calendar className="text-blue-500" />} label="Appointment Date" value={formatDate(token.scheduledTime)} />
+                    <DetailItem icon={<Clock className="text-blue-500" />} label="Scheduled Time" value={formatTime(token.scheduledTime)} />
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="bg-indigo-600 rounded-3xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 no-print">
+              <div>
+                <h3 className="text-lg font-bold mb-1">Need real-time tracking?</h3>
+                <p className="text-indigo-100 text-sm">Open the live tracking map to see exact counter status.</p>
+              </div>
+              <Link to={`/token/${id}/live`} className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors whitespace-nowrap">
+                Live Track Queue
+              </Link>
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* QR Code */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Token QR Code</h3>
-                <TokenQRCode 
-                  token={token} 
-                  size={200} 
-                  showActions={true}
-                  className="w-full"
-                />
-                <p className="text-sm text-gray-600 text-center mt-4">
-                  Show this QR code at the counter for quick check-in
-                </p>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8 text-center flex flex-col items-center">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">CHECK-IN QR CODE</h3>
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-6">
+                <TokenQRCode token={token} size={180} />
               </div>
+              <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                Scan this at the branch kiosk or show it to the operator for verified check-in.
+              </p>
             </div>
 
-            {/* Customer Information */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Name</p>
-                    <p className="font-medium text-gray-900">{token.user?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium text-gray-900">{token.user?.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium text-gray-900">{token.user?.phone || 'Not provided'}</p>
-                  </div>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">BOOKING INFO</h3>
+              <div className="space-y-6">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Booked For</p>
+                  <p className="text-sm font-bold text-gray-900">{token.user?.name}</p>
+                  <p className="text-xs text-gray-500">{token.user?.email}</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setShowPrintView(true)}
-                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-                  >
-                    <Printer className="h-4 w-4 inline mr-2" />
-                    Print Token
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                  >
-                    <Download className="h-4 w-4 inline mr-2" />
-                    Download
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                  >
-                    <Share2 className="h-4 w-4 inline mr-2" />
-                    Share
-                  </button>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Priority Type</p>
+                  <p className="text-sm font-bold text-gray-900 capitalize">{token.priority || 'Normal'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Booking ID</p>
+                  <p className="text-[10px] font-mono text-gray-400 truncate">{token._id}</p>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
       </main>
     </div>
   )
 }
+
+const DetailItem = ({ icon, label, value, subValue }) => (
+  <div className="flex gap-4">
+    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+      {icon}
+    </div>
+    <div>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
+      <p className="text-sm font-bold text-gray-900 leading-tight">{value || '—'}</p>
+      {subValue && <p className="text-xs text-gray-500 mt-0.5">{subValue}</p>}
+    </div>
+  </div>
+)
 
 export default TokenDetailsPage

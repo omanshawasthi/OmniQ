@@ -103,6 +103,14 @@ function App() {
           }
         />
         <Route
+          path="/user/my-tokens"
+          element={
+            <ProtectedRoute allowedRoles={['USER']}>
+              <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/user/active-token"
           element={
             <ProtectedRoute allowedRoles={['USER']}>

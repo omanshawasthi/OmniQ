@@ -306,7 +306,7 @@ export class TokenService {
       .populate('counterId', 'name')
 
     if (!token) {
-      throw new Error('Token not found')
+      throw new AppError('Token not found', 404)
     }
 
     return token
@@ -317,7 +317,7 @@ export class TokenService {
     const token = await Token.findOne({ _id: tokenId, userId })
 
     if (!token) {
-      throw new Error('Token not found')
+      throw new AppError('Token not found or unauthorized access', 404)
     }
 
     if (!token.canBeCancelled()) {
