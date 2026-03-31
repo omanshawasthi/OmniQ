@@ -21,6 +21,7 @@ import LiveQueuePage from './pages/user/LiveQueuePage'
 import AdminDashboard from './pages/AdminDashboard'
 import UsersPage from './pages/admin/UsersPage'
 import BranchesPage from './pages/admin/BranchesPage'
+import DepartmentsPage from './pages/admin/DepartmentsPage'
 import CountersPage from './pages/admin/CountersPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import QueueManagementPage from './pages/admin/QueueManagementPage'
@@ -151,6 +152,7 @@ function App() {
         <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['ADMIN']}><Analytics /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>} />
         <Route path="/admin/branches" element={<ProtectedRoute allowedRoles={['ADMIN']}><BranchesPage /></ProtectedRoute>} />
+        <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['ADMIN']}><DepartmentsPage /></ProtectedRoute>} />
         <Route path="/admin/counters" element={<ProtectedRoute allowedRoles={['ADMIN']}><CountersPage /></ProtectedRoute>} />
         <Route path="/admin/queue" element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}><QueueManagementPage /></ProtectedRoute>} />
         <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['ADMIN']}><SettingsPage /></ProtectedRoute>} />

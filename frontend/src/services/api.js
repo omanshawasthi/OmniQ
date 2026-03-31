@@ -130,6 +130,7 @@ export const apiClient = {
     update: (id, counterData) => api.put(`/counters/${id}`, counterData),
     delete: (id) => api.delete(`/counters/${id}`),
     updateStatus: (id, status) => api.put(`/counters/${id}/status`, { status }),
+    assignOperator: (id, userId) => api.post(`/counters/${id}/assign`, { userId }),
   },
 
   // Users
@@ -156,6 +157,11 @@ export const apiClient = {
     markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
     markAllAsRead: () => api.put('/notifications/read-all'),
     getUnreadCount: () => api.get('/notifications/unread-count'),
+  },
+
+  // Admin
+  admin: {
+    getOverview: () => api.get('/admin/overview'),
   },
 }
 

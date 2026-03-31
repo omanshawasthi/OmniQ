@@ -98,7 +98,9 @@ const branchSchema = new mongoose.Schema({
     maxlength: [1000, 'Description cannot exceed 1000 characters']
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Virtual for checking if branch is currently open
@@ -113,6 +115,20 @@ branchSchema.virtual('isOpen').get(function() {
   if (!todayHours || todayHours.isClosed) return false;
   
   return currentTime >= todayHours.open && currentTime <= todayHours.close;
+});
+
+// Virtual for departments relationship
+branchSchema.virtual('departments', {
+  ref: 'Department',
+  localField: '_id',
+  foreignField: 'branchId'
+});
+
+// Virtual for counters relationship
+branchSchema.virtual('counters', {
+  ref: 'Counter',
+  localField: '_id',
+  foreignField: 'branchId'
 });
 
 // Index for faster queries

@@ -1,5 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '../services/api'
 import { 
   Users, 
   Building, 
@@ -8,10 +10,21 @@ import {
   TrendingUp, 
   Clock,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Loader2,
+  ListOrdered
 } from 'lucide-react'
 
 const AdminDashboard = () => {
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['adminOverview'],
+    queryFn: async () => {
+      const response = await apiClient.admin.getOverview();
+      return response.data.data;
+    }
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -55,213 +68,193 @@ const AdminDashboard = () => {
           <p className="text-gray-600">System overview and management</p>
         </div>
 
-        {/* System Stats */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="h-8 w-8 text-primary-600" />
-              <span className="text-2xl font-bold text-gray-900">1,247</span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">Total Users</h3>
-            <p className="text-sm text-gray-600 mt-1">+12% from last month</p>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+            <p className="text-gray-500 font-medium">Loading system overview...</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <Building className="h-8 w-8 text-success-600" />
-              <span className="text-2xl font-bold text-gray-900">8</span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">Active Branches</h3>
-            <p className="text-sm text-gray-600 mt-1">All operational</p>
+        ) : isError ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg text-center font-medium">
+            Failed to load the system overview. Please check your network or try again later.
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <BarChart3 className="h-8 w-8 text-warning-600" />
-              <span className="text-2xl font-bold text-gray-900">523</span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">Today's Tokens</h3>
-            <p className="text-sm text-gray-600 mt-1">+8% from yesterday</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <Clock className="h-8 w-8 text-error-600" />
-              <span className="text-2xl font-bold text-gray-900">18</span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">Avg Wait Time</h3>
-            <p className="text-sm text-gray-600 mt-1">Minutes</p>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link
-            to="/users"
-            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-          >
-            <Users className="h-8 w-8 text-primary-600 mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Users</h3>
-            <p className="text-sm text-gray-600">Add, edit, and remove users</p>
-          </Link>
-
-          <Link
-            to="/branches"
-            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-          >
-            <Building className="h-8 w-8 text-primary-600 mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Branches</h3>
-            <p className="text-sm text-gray-600">Configure locations and services</p>
-          </Link>
-
-          <Link
-            to="/analytics"
-            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-          >
-            <TrendingUp className="h-8 w-8 text-primary-600 mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics</h3>
-            <p className="text-sm text-gray-600">View performance metrics</p>
-          </Link>
-
-          <Link
-            to="/settings"
-            className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-          >
-            <Settings className="h-8 w-8 text-primary-600 mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings</h3>
-            <p className="text-sm text-gray-600">System configuration</p>
-          </Link>
-        </div>
-
-        {/* System Status */}
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
-                    <span className="text-gray-900">Database</span>
-                  </div>
-                  <span className="text-sm text-success-600">Operational</span>
+        ) : (
+          <>
+            {/* System Stats */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <Users className="h-8 w-8 text-primary-600" />
+                  <span className="text-2xl font-bold text-gray-900">
+                    {data?.system?.totalUsers || 0}
+                  </span>
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900">Total Users</h3>
+                <p className="text-sm text-gray-600 mt-1">Registered accounts</p>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
-                    <span className="text-gray-900">API Server</span>
-                  </div>
-                  <span className="text-sm text-success-600">Operational</span>
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <Building className="h-8 w-8 text-success-600" />
+                  <span className="text-2xl font-bold text-gray-900">
+                    {data?.system?.totalBranches || 0}
+                  </span>
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900">Active Branches</h3>
+                <p className="text-sm text-gray-600 mt-1">All operational</p>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
-                    <span className="text-gray-900">Socket.IO</span>
-                  </div>
-                  <span className="text-sm text-success-600">Operational</span>
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <BarChart3 className="h-8 w-8 text-warning-600" />
+                  <span className="text-2xl font-bold text-gray-900">
+                    {data?.today?.totalTokens || 0}
+                  </span>
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900">Today's Tokens</h3>
+                <p className="text-sm text-gray-600 mt-1">Walk-ins: {data?.today?.walkInTokens} | Online: {data?.today?.onlineTokens}</p>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 text-warning-600 mr-3" />
-                    <span className="text-gray-900">Email Service</span>
-                  </div>
-                  <span className="text-sm text-warning-600">Degraded</span>
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <Clock className="h-8 w-8 text-error-600" />
+                  <span className="text-2xl font-bold text-gray-900">
+                    {data?.today?.avgWaitTime || 0}
+                  </span>
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900">Avg Wait Time</h3>
+                <p className="text-sm text-gray-600 mt-1">Minutes (Today)</p>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 mr-3"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">New user registered</p>
-                    <p className="text-xs text-gray-600">john.doe@email.com • 2 minutes ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-success-600 rounded-full mt-2 mr-3"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">Branch configuration updated</p>
-                    <p className="text-xs text-gray-600">Main Branch • 15 minutes ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-warning-600 rounded-full mt-2 mr-3"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">High queue volume detected</p>
-                    <p className="text-xs text-gray-600">Downtown Branch • 1 hour ago</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-error-600 rounded-full mt-2 mr-3"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">System backup completed</p>
-                    <p className="text-xs text-gray-600">Automated • 2 hours ago</p>
-                  </div>
-                </div>
+            {/* Token Progress (Today) */}
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-4 rounded-lg shadow-sm border text-center">
+                <h4 className="text-sm text-gray-500 font-medium uppercase">Waiting</h4>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{data?.today?.waitingTokens}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border text-center line-clamp-1">
+                <h4 className="text-sm text-gray-500 font-medium uppercase">Serving</h4>
+                <p className="text-3xl font-bold text-blue-600 mt-2">{data?.today?.servingTokens}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border text-center">
+                <h4 className="text-sm text-gray-500 font-medium uppercase">Completed</h4>
+                <p className="text-3xl font-bold text-success-600 mt-2">{data?.today?.completedTokens}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border text-center">
+                <h4 className="text-sm text-gray-500 font-medium uppercase">Missed/Skipped</h4>
+                <p className="text-3xl font-bold text-warning-600 mt-2">
+                  {(data?.today?.missedTokens || 0) + (data?.today?.skippedTokens || 0)}
+                </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Performance Overview */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Link
-                to="/analytics"
-                className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                to="/admin/users"
+                className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
               >
-                View Detailed Analytics
+                <Users className="h-8 w-8 text-primary-600 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Users</h3>
+                <p className="text-sm text-gray-600">Add, edit, and remove users</p>
+              </Link>
+
+              <Link
+                to="/admin/branches"
+                className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              >
+                <Building className="h-8 w-8 text-primary-600 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Branches</h3>
+                <p className="text-sm text-gray-600">Configure locations and services</p>
+              </Link>
+
+              <Link
+                to="/admin/analytics"
+                className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              >
+                <TrendingUp className="h-8 w-8 text-primary-600 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics</h3>
+                <p className="text-sm text-gray-600">View performance metrics</p>
+              </Link>
+
+              <Link
+                to="/admin/counters"
+                className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              >
+                <ListOrdered className="h-8 w-8 text-primary-600 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Counters</h3>
+                <p className="text-sm text-gray-600">Setup and assign counters</p>
               </Link>
             </div>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="mb-2">
-                  <p className="text-3xl font-bold text-gray-900">94%</p>
-                </div>
-                <p className="text-sm text-gray-600">Completion Rate</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-success-600 h-2 rounded-full" style={{ width: '94%' }}></div>
+
+            {/* Additional Info / Status */}
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
+                        <span className="text-gray-900">Database</span>
+                      </div>
+                      <span className="text-sm text-success-600">Operational</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
+                        <span className="text-gray-900">API Server</span>
+                      </div>
+                      <span className="text-sm text-success-600">Operational</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 text-success-600 mr-3" />
+                        <span className="text-gray-900">Socket.IO</span>
+                      </div>
+                      <span className="text-sm text-success-600">Operational</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <AlertCircle className="h-5 w-5 text-warning-600 mr-3" />
+                        <span className="text-gray-900">Email Service</span>
+                      </div>
+                      <span className="text-sm text-warning-600">Degraded (Test Environment)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="text-center">
-                <div className="mb-2">
-                  <p className="text-3xl font-bold text-gray-900">8.5</p>
-                </div>
-                <p className="text-sm text-gray-600">Avg Service Time (min)</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-warning-600 h-2 rounded-full" style={{ width: '42%' }}></div>
-                </div>
-              </div>
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Infrastructure Specs</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 mr-3"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">Departments Configured</p>
+                        <p className="text-xs text-gray-600">{data?.system?.totalDepartments || 0} total active departments in operations.</p>
+                      </div>
+                    </div>
 
-              <div className="text-center">
-                <div className="mb-2">
-                  <p className="text-3xl font-bold text-gray-900">4.8</p>
-                </div>
-                <p className="text-sm text-gray-600">Customer Satisfaction</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-primary-600 h-2 rounded-full" style={{ width: '96%' }}></div>
+                    <div className="flex items-start">
+                      <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 mr-3"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">Counters Tracked</p>
+                        <p className="text-xs text-gray-600">{data?.system?.totalCounters || 0} total physical counters capable of token processing.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </main>
     </div>
   )

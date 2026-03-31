@@ -1,18 +1,28 @@
 import express from 'express';
 import { authenticate, authorize } from '../middleware/auth.js';
+import {
+  createCounter,
+  getCounters,
+  getCounter,
+  updateCounter,
+  deleteCounter,
+  assignStaff
+} from '../src/controllers/counterController.js';
 
 const router = express.Router();
 
-// All routes are protected
-router.use(authenticate);
+// Fetch counters (accessible to all authenticated users for queue viewing)
+router.get('/', authenticate, getCounters);
+router.get('/:id', authenticate, getCounter);
 
-// Counter management routes (placeholder)
-router.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Counters endpoint - coming soon',
-    data: []
-  });
-});
+// Restrict CRUD and Assignments to ADMIN strictly
+router.use(authenticate, authorize('ADMIN'));
+
+router.post('/', createCounter);
+router.put('/:id', updateCounter);
+router.delete('/:id', deleteCounter);
+
+// Assignment specialized route
+router.post('/:id/assign', assignStaff);
 
 export default router;
