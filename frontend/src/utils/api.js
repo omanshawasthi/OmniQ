@@ -205,8 +205,22 @@ export const notificationAPI = {
 
 // ── Staff API ─────────────────────────────────────────────────────────────────
 export const staffAPI = {
+  // Dashboard & queue view
   getTodayStats: (params) => api.get('/staff/stats/today', { params }),
   getTodayQueue: (params) => api.get('/staff/queue/today', { params }),
+
+  // Walk-in token creation
+  createWalkIn: (data) => api.post('/staff/walk-in', data),
+
+  // Queue lifecycle actions
+  callNext: (data) => api.post('/staff/queue/call-next', data),
+  serveToken:    (tokenId) => api.post(`/staff/queue/${tokenId}/serve`),
+  completeToken: (tokenId) => api.post(`/staff/queue/${tokenId}/complete`),
+  skipToken:     (tokenId, reason = '') => api.post(`/staff/queue/${tokenId}/skip`, { reason }),
+  holdToken:     (tokenId, reason = '') => api.post(`/staff/queue/${tokenId}/hold`, { reason }),
+  recallToken:   (tokenId) => api.post(`/staff/queue/${tokenId}/recall`),
+  markMissed:    (tokenId) => api.post(`/staff/queue/${tokenId}/missed`),
+  checkIn:       (tokenId) => api.post(`/staff/queue/${tokenId}/check-in`),
 };
 
 export default api;

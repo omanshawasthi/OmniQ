@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Clock, Copy, Plus, ClipboardList, Loader2, LogOut } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Clock, Plus, ClipboardList, Loader2, LogOut, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { staffAPI } from '../../utils/api';
 import { useAuthStore } from '../../store/authStore';
@@ -149,11 +149,15 @@ const StaffDashboardPage = () => {
                <Users className="w-48 h-48 -mr-10 -mt-10" />
             </div>
             <h3 className="text-2xl font-bold mb-2">Manage Queue Safely</h3>
-            <p className="text-blue-100 mb-8 max-w-sm">From the queue operational view, you can see all tokens arranged by priority and status.</p>
-            <div>
-              <Link to="/staff/queue" className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-lg font-bold shadow-md hover:bg-gray-50 transition-colors">
+            <p className="text-blue-100 mb-6 max-w-sm">View all tokens, or add a walk-in visitor directly to the live queue.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link to="/staff/queue" className="inline-flex items-center gap-2 bg-white text-blue-700 px-5 py-2.5 rounded-lg font-bold shadow-md hover:bg-gray-50 transition-colors">
                 <ClipboardList className="w-5 h-5" />
-                Open Today's Queue
+                Today's Queue
+              </Link>
+              <Link to="/staff/walk-in" className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition-colors">
+                <UserPlus className="w-5 h-5" />
+                Add Walk-in
               </Link>
             </div>
           </div>

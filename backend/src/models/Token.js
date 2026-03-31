@@ -13,7 +13,7 @@ const tokenSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User is required']
+    default: null
   },
   branchId: {
     type: mongoose.Schema.Types.ObjectId,

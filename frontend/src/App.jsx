@@ -29,7 +29,7 @@ import Analytics from './components/admin/Analytics'
 // Staff pages
 import StaffDashboardPage from './pages/staff/StaffDashboardPage'
 import StaffQueuePage from './pages/staff/StaffQueuePage'
-import WalkInPage from './pages/staff/WalkInPage'
+import CreateWalkInTokenPage from './pages/staff/CreateWalkInTokenPage'
 import QueueControlPage from './pages/staff/QueueControlPage'
 
 // Operator pages
@@ -158,7 +158,7 @@ function App() {
         {/* Staff Routes */}
         <Route path="/staff" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffDashboardPage /></ProtectedRoute>} />
         <Route path="/staff/queue" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffQueuePage /></ProtectedRoute>} />
-        <Route path="/staff/walk-in" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><WalkInPage /></ProtectedRoute>} />
+        <Route path="/staff/walk-in" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><CreateWalkInTokenPage /></ProtectedRoute>} />
         <Route path="/staff/queue-control" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><QueueControlPage /></ProtectedRoute>} />
 
         {/* Operator Routes */}
