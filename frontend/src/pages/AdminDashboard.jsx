@@ -1,7 +1,8 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../services/api'
+import { useAuthStore } from '../store/authStore'
 import { 
   Users, 
   Building, 
@@ -12,10 +13,18 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
-  ListOrdered
+  ListOrdered,
+  LogOut
 } from 'lucide-react'
 
 const AdminDashboard = () => {
+  const navigate = useNavigate()
+  const { logout } = useAuthStore()
+
+  const handleSignOut = () => {
+    logout()
+    navigate('/login')
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['adminOverview'],
@@ -34,28 +43,32 @@ const AdminDashboard = () => {
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-900">Queueless - Admin</h1>
             </div>
-            <nav className="flex space-x-8">
-              <Link to="/dashboard" className="text-primary-600 hover:text-primary-700">
-                Dashboard
-              </Link>
-              <Link to="/admin" className="text-gray-600 hover:text-gray-900">
+            <nav className="flex items-center space-x-6">
+              <Link to="/admin" className="text-gray-600 hover:text-gray-900 text-sm">
                 Overview
               </Link>
-              <Link to="/admin/analytics" className="text-gray-600 hover:text-gray-900">
+              <Link to="/admin/analytics" className="text-gray-600 hover:text-gray-900 text-sm">
                 Analytics
               </Link>
-              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">
+              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900 text-sm">
                 Users
               </Link>
-              <Link to="/admin/branches" className="text-gray-600 hover:text-gray-900">
+              <Link to="/admin/branches" className="text-gray-600 hover:text-gray-900 text-sm">
                 Branches
               </Link>
-              <Link to="/admin/counters" className="text-gray-600 hover:text-gray-900">
+              <Link to="/admin/counters" className="text-gray-600 hover:text-gray-900 text-sm">
                 Counters
               </Link>
-              <Link to="/admin/settings" className="text-gray-600 hover:text-gray-900">
+              <Link to="/admin/settings" className="text-gray-600 hover:text-gray-900 text-sm">
                 Settings
               </Link>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-medium ml-2 border-l pl-4 border-gray-200"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
             </nav>
           </div>
         </div>

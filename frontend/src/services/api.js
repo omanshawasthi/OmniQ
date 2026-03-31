@@ -148,10 +148,11 @@ export const apiClient = {
   // Analytics
   analytics: {
     getDashboard: (params) => api.get('/analytics/dashboard', { params }),
-    getTokenStats: (params) => api.get('/analytics/tokens/stats', { params }),
-    getQueuePerformance: (params) => api.get('/analytics/queues/performance', { params }),
-    getDailyReport: (date) => api.get('/analytics/reports/daily', { params: { date } }),
-    getWeeklyReport: (startDate, endDate) => api.get('/analytics/reports/weekly', { params: { startDate, endDate } }),
+    getTokenStats: (params) => api.get('/analytics/tokens', { params }),
+    getDepartmentStats: (params) => api.get('/analytics/departments', { params }),
+    getBranchStats: (params) => api.get('/analytics/branches', { params }),
+    getPerformance: (params) => api.get('/analytics/performance', { params }),
+    exportData: (params) => api.get('/analytics/export', { params }),
   },
 
   // Notifications

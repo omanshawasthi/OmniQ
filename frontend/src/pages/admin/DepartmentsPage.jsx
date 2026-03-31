@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../services/api'
+import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Edit, Trash2, Plus, Loader2, Layers } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Loader2, Layers, LogOut } from 'lucide-react'
 
 // Default empty department structure
 const initialFormState = {
@@ -16,10 +17,17 @@ const initialFormState = {
 
 const DepartmentsPage = () => {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { logout } = useAuthStore()
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState(initialFormState)
+
+  const handleSignOut = () => {
+    logout()
+    navigate('/login')
+  }
 
   // Fetch all branches for dropdown
   const { data: branchesResponse, isLoading: isLoadingBranches } = useQuery({

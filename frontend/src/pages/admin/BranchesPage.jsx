@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../services/api'
+import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Building, Edit, Trash2, Plus, Loader2, Search } from 'lucide-react'
+import { ArrowLeft, Building, Edit, Trash2, Plus, Loader2, Search, LogOut } from 'lucide-react'
 
 // Default empty branch structure
 const initialFormState = {
@@ -25,10 +26,17 @@ const initialFormState = {
 
 const BranchesPage = () => {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { logout } = useAuthStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState(initialFormState)
+
+  const handleSignOut = () => {
+    logout()
+    navigate('/login')
+  }
 
   // Fetch branches
   const { data: response, isLoading } = useQuery({
@@ -135,10 +143,13 @@ const BranchesPage = () => {
               </Link>
               <h1 className="text-xl font-semibold text-gray-900">Manage Branches</h1>
             </div>
-            <div className="flex space-x-4">
-               <Link to="/admin/departments" className="text-blue-600 hover:text-blue-700 font-medium">
+            <div className="flex items-center gap-4">
+               <Link to="/admin/departments" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
                 Manage Departments &rarr;
               </Link>
+              <button onClick={handleSignOut} className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-medium border-l pl-4 border-gray-200">
+                <LogOut className="h-4 w-4" /> Sign Out
+              </button>
             </div>
           </div>
         </div>

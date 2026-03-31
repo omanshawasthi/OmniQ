@@ -25,7 +25,7 @@ import DepartmentsPage from './pages/admin/DepartmentsPage'
 import CountersPage from './pages/admin/CountersPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import QueueManagementPage from './pages/admin/QueueManagementPage'
-import Analytics from './components/admin/Analytics'
+import AnalyticsDashboardPage from './pages/admin/AnalyticsDashboardPage'
 
 // Staff pages
 import StaffDashboardPage from './pages/staff/StaffDashboardPage'
@@ -149,7 +149,7 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['ADMIN']}><Analytics /></ProtectedRoute>} />
+        <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['ADMIN']}><AnalyticsDashboardPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>} />
         <Route path="/admin/branches" element={<ProtectedRoute allowedRoles={['ADMIN']}><BranchesPage /></ProtectedRoute>} />
         <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['ADMIN']}><DepartmentsPage /></ProtectedRoute>} />
