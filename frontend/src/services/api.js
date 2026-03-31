@@ -140,6 +140,9 @@ export const apiClient = {
     create: (userData) => api.post('/users', userData),
     update: (id, userData) => api.put(`/users/${id}`, userData),
     delete: (id) => api.delete(`/users/${id}`),
+    updateRole: (id, roleData) => api.put(`/users/${id}/role`, roleData),
+    activate: (id) => api.put(`/users/${id}/activate`),
+    deactivate: (id) => api.put(`/users/${id}/deactivate`),
   },
 
   // Analytics
