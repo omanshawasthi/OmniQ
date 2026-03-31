@@ -203,4 +203,10 @@ export const notificationAPI = {
   markAllAsRead: () => api.put('/notifications/read-all'),
 };
 
+// ── Staff API ─────────────────────────────────────────────────────────────────
+export const staffAPI = {
+  getTodayStats: (params) => api.get('/staff/stats/today', { params }),
+  getTodayQueue: (params) => api.get('/staff/queue/today', { params }),
+};
+
 export default api;

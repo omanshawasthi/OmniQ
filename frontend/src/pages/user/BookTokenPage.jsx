@@ -8,6 +8,7 @@ const BookTokenPage = () => {
     serviceType: '',
     branch: '',
     priority: 'normal',
+    date: new Date().toISOString().split('T')[0],
     notes: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -75,10 +76,15 @@ const BookTokenPage = () => {
 
     try {
       // Map form data to API format
+      const selectedDate = formData.date ? new Date(formData.date) : new Date()
+      // Keep today's current time for non-slot system, just use selected Date
+      const now = new Date()
+      selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds())
+
       const bookingData = {
         branchId: formData.branch,
         departmentId: formData.serviceType,
-        scheduledTime: new Date().toISOString(),
+        scheduledTime: selectedDate.toISOString(),
         priority: formData.priority,
         notes: formData.notes
       }
@@ -209,6 +215,23 @@ const BookTokenPage = () => {
               {!formData.branch && (
                 <p className="text-sm text-gray-500 mt-1">Please select a branch first</p>
               )}
+            </div>
+
+            {/* Date Selection */}
+            <div>
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                Visit Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                min={new Date().toISOString().split('T')[0]}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
             </div>
 
             {/* Priority Selection */}

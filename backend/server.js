@@ -21,6 +21,7 @@ import departmentRoutes from './routes/departments.js';
 import counterRoutes from './routes/counters.js';
 import analyticsRoutes from './routes/analytics.js';
 import notificationRoutes from './routes/notifications.js';
+import staffRoutes from './routes/staff.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const app = express();
@@ -60,6 +61,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/counters', counterRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/staff', staffRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

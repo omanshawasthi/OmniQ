@@ -27,7 +27,8 @@ import QueueManagementPage from './pages/admin/QueueManagementPage'
 import Analytics from './components/admin/Analytics'
 
 // Staff pages
-import StaffDashboard from './pages/StaffDashboard'
+import StaffDashboardPage from './pages/staff/StaffDashboardPage'
+import StaffQueuePage from './pages/staff/StaffQueuePage'
 import WalkInPage from './pages/staff/WalkInPage'
 import QueueControlPage from './pages/staff/QueueControlPage'
 
@@ -155,9 +156,10 @@ function App() {
         <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['ADMIN']}><SettingsPage /></ProtectedRoute>} />
 
         {/* Staff Routes */}
-        <Route path="/staff" element={<ProtectedRoute allowedRoles={['STAFF']}><StaffDashboard /></ProtectedRoute>} />
-        <Route path="/staff/walk-in" element={<ProtectedRoute allowedRoles={['STAFF']}><WalkInPage /></ProtectedRoute>} />
-        <Route path="/staff/queue-control" element={<ProtectedRoute allowedRoles={['STAFF']}><QueueControlPage /></ProtectedRoute>} />
+        <Route path="/staff" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffDashboardPage /></ProtectedRoute>} />
+        <Route path="/staff/queue" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffQueuePage /></ProtectedRoute>} />
+        <Route path="/staff/walk-in" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><WalkInPage /></ProtectedRoute>} />
+        <Route path="/staff/queue-control" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><QueueControlPage /></ProtectedRoute>} />
 
         {/* Operator Routes */}
         <Route path="/operator" element={<ProtectedRoute allowedRoles={['OPERATOR']}><OperatorDashboard /></ProtectedRoute>} />

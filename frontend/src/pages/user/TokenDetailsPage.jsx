@@ -357,6 +357,10 @@ Time: ${formatTime(token?.scheduledTime)}
                   <p className="text-sm font-bold text-gray-900 capitalize">{token.priority || 'Normal'}</p>
                 </div>
                 <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Token Source</p>
+                  <p className="text-sm font-bold text-gray-900 capitalize">{token.bookingType === 'online' ? 'Online Booking' : 'Walk-in'}</p>
+                </div>
+                <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Booking ID</p>
                   <p className="text-[10px] font-mono text-gray-400 truncate">{token._id}</p>
                 </div>

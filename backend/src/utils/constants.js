@@ -160,3 +160,16 @@ export const SOCKET_EVENTS = {
   NOTIFICATION: 'notification',
   QUEUE_ACTION: 'queue_action'
 };
+
+// Notification Types
+export const NOTIFICATION_TYPES = {
+  BOOKING_CONFIRMATION: 'booking_confirmation',
+  BOOKING_CONFIRMED: 'booking_confirmed',
+  QUEUE_ALERT: 'queue_alert',
+  STATUS_UPDATE: 'status_update',
+  TOKEN_APPROACHING: 'token_approaching',
+  MISSED_TOKEN: 'missed_token',
+  TOKEN_COMPLETED: 'token_completed',
+  QUEUE_DELAYED: 'queue_delayed',
+  TOKEN_CANCELLED: 'token_cancelled'
+};

@@ -61,6 +61,10 @@ const tokenSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  recommendedArrivalTime: {
+    type: Date,
+    default: null
+  },
   estimatedWaitTime: {
     type: Number,
     default: 0,

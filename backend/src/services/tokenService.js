@@ -4,6 +4,7 @@ import Branch from '../models/Branch.js'
 import Department from '../models/Department.js'
 import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
+import { NotificationService } from './notificationService.js'
 import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS, QUEUE_ACTIONS } from '../utils/constants.js'
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
@@ -135,6 +136,9 @@ export class TokenService {
       { path: 'departmentId', select: 'name description' }
     ])
 
+    // Send confirmation notification
+    await NotificationService.sendBookingConfirmation({ _id: userId }, token)
+
     return token
   }
 
@@ -231,9 +235,9 @@ export class TokenService {
 
     if (status) {
       if (typeof status === 'string' && status.includes(',')) {
-        query.status = { $in: status.split(',').map(s => s.trim().toUpperCase()) }
+        query.status = { $in: status.split(',').map(s => s.trim().toLowerCase()) }
       } else {
-        query.status = typeof status === 'string' ? status.toUpperCase() : status
+        query.status = typeof status === 'string' ? status.toLowerCase() : status
       }
     }
 
