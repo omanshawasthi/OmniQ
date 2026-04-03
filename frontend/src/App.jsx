@@ -164,6 +164,7 @@ function App() {
         <Route path="/staff/queue" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffQueuePage /></ProtectedRoute>} />
         <Route path="/staff/walk-in" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><CreateWalkInTokenPage /></ProtectedRoute>} />
         <Route path="/staff/queue-control" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><QueueControlPage /></ProtectedRoute>} />
+        <Route path="/staff/search" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffQueuePage /></ProtectedRoute>} />
 
         {/* Operator Routes */}
         <Route path="/operator" element={<ProtectedRoute allowedRoles={['OPERATOR']}><OperatorDashboard /></ProtectedRoute>} />

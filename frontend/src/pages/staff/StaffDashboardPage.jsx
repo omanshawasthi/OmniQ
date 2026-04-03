@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Clock, Plus, ClipboardList, Loader2, LogOut, UserPlus } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Clock, Plus, ClipboardList, Loader2, LogOut, UserPlus, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { staffAPI } from '../../utils/api';
 import { useAuthStore } from '../../store/authStore';
@@ -154,6 +154,10 @@ const StaffDashboardPage = () => {
               <Link to="/staff/queue" className="inline-flex items-center gap-2 bg-white text-blue-700 px-5 py-2.5 rounded-lg font-bold shadow-md hover:bg-gray-50 transition-colors">
                 <ClipboardList className="w-5 h-5" />
                 Today's Queue
+              </Link>
+              <Link to="/staff/queue?dateRange=30days" className="inline-flex items-center gap-2 bg-blue-100/20 hover:bg-blue-100/30 text-white border border-blue-400/30 px-5 py-2.5 rounded-lg font-bold shadow-md transition-colors">
+                <RotateCcw className="w-5 h-5" />
+                View History
               </Link>
               <Link to="/staff/walk-in" className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition-colors">
                 <UserPlus className="w-5 h-5" />

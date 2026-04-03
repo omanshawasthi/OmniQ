@@ -12,32 +12,43 @@ const HistoryPage = () => {
   const [cancellingTokenId, setCancellingTokenId] = useState(null)
   const [reschedulingToken, setReschedulingToken] = useState(null)
   const [activeTab, setActiveTab] = useState('ALL')
+  const [dateRange, setDateRange] = useState('30days')
 
   const TABS = [
-    { id: 'ALL', label: 'All', icon: null },
-    { id: 'WAITING,SERVING,HELD', label: 'Active', icon: <Clock className="h-4 w-4" /> },
-    { id: 'COMPLETED', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
-    { id: 'CANCELLED', label: 'Cancelled', icon: <XCircle className="h-4 w-4" /> },
-    { id: 'MISSED,SKIPPED', label: 'Missed', icon: <AlertCircle className="h-4 w-4" /> },
+    { id: 'ALL', label: 'All History', icon: null },
+    { id: 'WAITING,SERVING,HELD', label: 'In-Progress', icon: <Clock className="h-4 w-4" /> },
+    { id: 'COMPLETED', label: 'Success', icon: <CheckCircle className="h-4 w-4" /> },
+    { id: 'CANCELLED,MISSED,EXPIRED', label: 'Closed', icon: <XCircle className="h-4 w-4" /> },
+  ]
+
+  const DATE_RANGES = [
+    { id: 'today', label: 'Today' },
+    { id: '7days', label: 'Last 7 Days' },
+    { id: '30days', label: 'Last 30 Days' },
+    { id: 'all', label: 'All Time' },
   ]
 
   useEffect(() => {
     loadTokens()
-  }, [activeTab])
+  }, [activeTab, dateRange])
 
   const loadTokens = async () => {
     setIsLoading(true)
+    setError('')
     try {
       const params = {
         limit: 50,
-        sort: '-createdAt'
+        sort: '-createdAt',
+        dateRange
       }
       if (activeTab !== 'ALL') {
         params.status = activeTab
       }
 
       const res = await tokenAPI.getMyTokens(params)
-      setTokens(res.tokens || [])
+      // Handle both flat array and paginated object (res.tokens)
+      const tokenList = Array.isArray(res) ? res : (res?.tokens || [])
+      setTokens(tokenList)
       setIsLoading(false)
     } catch (error) {
       console.error('Error loading tokens:', error)
@@ -85,6 +96,10 @@ const HistoryPage = () => {
         return <XCircle className="h-4 w-4 text-red-500" />
       case 'held':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />
+      case 'expired':
+        return <Clock className="h-4 w-4 text-gray-400" />
+      case 'checked_in':
+        return <CheckCircle className="h-4 w-4 text-teal-500 font-bold" />
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />
     }
@@ -100,6 +115,8 @@ const HistoryPage = () => {
       held: 'bg-yellow-100 text-yellow-800',
       missed: 'bg-gray-100 text-gray-600',
       skipped: 'bg-gray-100 text-gray-600',
+      expired: 'bg-gray-200 text-gray-500 italic',
+      checked_in: 'bg-teal-100 text-teal-800 font-bold',
     }
     
     return (
@@ -151,30 +168,52 @@ const HistoryPage = () => {
       </header>
 
       {/* Filters/Tabs */}
-      <div className="bg-white border-b mb-6 overflow-x-auto">
+      <div className="bg-white border-b overflow-x-auto shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8" aria-label="Tabs">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2
-                  ${activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-                `}
-              >
-                {tab.icon}
-                {tab.label}
-                {activeTab === tab.id && !isLoading && (
-                  <span className="ml-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
-                    {tokens.length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
+            <nav className="flex space-x-4 md:space-x-8" aria-label="Tabs">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2
+                    ${activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+                  `}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {activeTab === tab.id && !isLoading && (
+                    <span className="ml-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+                      {tokens.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-2 pb-2 sm:pb-0">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Range:</label>
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                {DATE_RANGES.map((range) => (
+                  <button
+                    key={range.id}
+                    onClick={() => setDateRange(range.id)}
+                    className={`
+                      px-3 py-1 rounded-md text-xs font-medium transition-all
+                      ${dateRange === range.id
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'}
+                    `}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

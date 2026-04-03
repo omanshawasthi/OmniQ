@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, RefreshCw, AlertCircle, Search, X, LogOut,
   UserPlus, Filter, ChevronRight, Play, CheckSquare, SkipForward,
@@ -18,6 +18,8 @@ const STATUS_FLOW = {
   skipped:   { label: 'Skipped',   classes: 'bg-orange-100 text-orange-700' },
   missed:    { label: 'Missed',    classes: 'bg-red-100 text-red-700' },
   cancelled: { label: 'Cancelled', classes: 'bg-gray-100 text-gray-400' },
+  expired:   { label: 'Expired',   classes: 'bg-gray-200 text-gray-500 italic' },
+  checked_in:{ label: 'Checked-in',classes: 'bg-teal-100 text-teal-800 font-black' },
 }
 
 const PRIORITY_STYLES = {
@@ -25,16 +27,16 @@ const PRIORITY_STYLES = {
   high:   'bg-orange-500 text-white',
 }
 
-// ─── Per-status allowed actions ───────────────────────────────────────────────
-// This mirrors the backend transition map — only shows valid operations per state
 const ALLOWED_ACTIONS = {
-  waiting:  ['serve', 'checkin', 'hold', 'skip', 'missed'],
-  serving:  ['complete', 'hold', 'skip'],
-  held:     ['serve', 'skip', 'missed'],
-  skipped:  ['recall', 'missed'],
-  missed:   ['recall'],
-  completed: [],
+  waiting:    ['serve', 'checkin', 'hold', 'skip', 'missed'],
+  checked_in: ['serve', 'hold', 'skip', 'missed'],
+  serving:    ['complete', 'hold', 'skip'],
+  held:       ['serve', 'checkin', 'skip', 'missed'],
+  skipped:    ['recall', 'missed'],
+  missed:     ['recall'],
+  completed:  [],
   cancelled:  [],
+  expired:    ['recall'],
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -168,8 +170,15 @@ const StaffQueuePage = () => {
   const [loadingAction, setLoadingAction] = useState(null) // { tokenId, action }
   const [callingNext, setCallingNext]  = useState(false)
 
+  const [searchParams] = useSearchParams()
+  const initialDateRange = searchParams.get('dateRange') || 'today'
+
   const [filters, setFilters] = useState({
-    search: '', status: '', source: '', priority: ''
+    search: searchParams.get('search') || '', 
+    status: searchParams.get('status') || '', 
+    source: '', 
+    priority: '', 
+    dateRange: initialDateRange
   })
 
   const loadQueue = useCallback(async () => {
@@ -177,10 +186,11 @@ const StaffQueuePage = () => {
     setError('')
     try {
       const params = {}
-      if (filters.search)   params.search   = filters.search
-      if (filters.status)   params.status   = filters.status
-      if (filters.source)   params.source   = filters.source
-      if (filters.priority) params.priority = filters.priority
+      if (filters.search)    params.search    = filters.search
+      if (filters.status)    params.status    = filters.status
+      if (filters.source)    params.source    = filters.source
+      if (filters.priority)  params.priority  = filters.priority
+      if (filters.dateRange) params.dateRange = filters.dateRange
       const data = await staffAPI.getTodayQueue(params)
       setTokens(data || [])
     } catch {
@@ -199,7 +209,7 @@ const StaffQueuePage = () => {
     setFilters(prev => ({ ...prev, [key]: val }))
 
   const clearFilters = () =>
-    setFilters({ search: '', status: '', source: '', priority: '' })
+    setFilters({ search: '', status: '', source: '', priority: '', dateRange: 'today' })
 
   const hasActiveFilters = filters.status || filters.source || filters.priority
 
@@ -306,7 +316,7 @@ const StaffQueuePage = () => {
           </Link>
         </div>
 
-        {/* Search + Filter */}
+        {/* Search + Filter + Time Range */}
         <div className="mb-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -323,13 +333,28 @@ const StaffQueuePage = () => {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${hasActiveFilters ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600 bg-white hover:bg-gray-50'}`}
-          >
-            <Filter className="w-4 h-4" /> Filters
-            {hasActiveFilters && <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>}
-          </button>
+
+          <div className="flex gap-2">
+            <select 
+              value={filters.dateRange} 
+              onChange={e => handleFilterChange('dateRange', e.target.value)} 
+              className={`px-4 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[140px] ${filters.dateRange !== 'today' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-300 text-gray-700'}`}
+            >
+              <option value="today">Today Only</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="all">Full History</option>
+            </select>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-semibold transition-colors ${hasActiveFilters ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-600 bg-white hover:bg-gray-50'}`}
+            >
+              <Filter className="w-4 h-4" /> 
+              <span className="hidden sm:inline">Advanced</span> Filters
+              {hasActiveFilters && <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>}
+            </button>
+          </div>
         </div>
 
         {/* Filter Panel */}
@@ -379,7 +404,7 @@ const StaffQueuePage = () => {
         {!loading && !error && (
           <p className="mb-3 text-sm text-gray-500">
             <span className="font-semibold text-gray-700">{tokens.length}</span> token{tokens.length !== 1 ? 's' : ''}{' '}
-            {hasActiveFilters || filters.search ? 'matching filters' : 'today'}
+            {hasActiveFilters || filters.search || filters.dateRange !== 'today' ? 'matching filters' : 'today'}
           </p>
         )}
 
