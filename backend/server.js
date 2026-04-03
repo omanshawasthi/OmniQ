@@ -19,10 +19,11 @@ import userRoutes from './routes/users.js';
 import branchRoutes from './routes/branches.js';
 import departmentRoutes from './routes/departments.js';
 import counterRoutes from './routes/counters.js';
+import adminRoutes from './routes/admin.js';
+import publicRoutes from './routes/public.js';
 import analyticsRoutes from './routes/analytics.js';
 import notificationRoutes from './routes/notifications.js';
 import staffRoutes from './routes/staff.js';
-import adminRoutes from './routes/admin.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const app = express();
@@ -64,6 +65,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/public', publicRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

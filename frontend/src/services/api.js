@@ -163,6 +163,11 @@ export const apiClient = {
     getUnreadCount: () => api.get('/notifications/unread-count'),
   },
 
+  // Public
+  public: {
+    getDisplayData: (branchId, departmentId) => api.get(`/public/display/${branchId}/${departmentId}`),
+  },
+
   // Admin
   admin: {
     getOverview: () => api.get('/admin/overview'),

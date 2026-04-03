@@ -56,7 +56,7 @@ const UsersPage = () => {
       return res.data
     }
   })
-  const branches = branchResponse?.data || []
+  const branches = branchResponse?.data?.branches || branchResponse?.data || []
 
   // Mutations
   const activateMutation = useMutation({

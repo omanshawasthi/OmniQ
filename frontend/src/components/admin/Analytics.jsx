@@ -241,7 +241,7 @@ const Analytics = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">All Branches</option>
-              {branches?.data?.map((branch) => (
+              {branches?.data?.branches?.map((branch) => (
                 <option key={branch._id} value={branch._id}>
                   {branch.name}
                 </option>
@@ -260,7 +260,7 @@ const Analytics = () => {
               disabled={!selectedBranch}
             >
               <option value="">All Departments</option>
-              {departments?.data?.map((department) => (
+              {departments?.data?.departments?.map((department) => (
                 <option key={department._id} value={department._id}>
                   {department.name}
                 </option>

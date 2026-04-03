@@ -2,7 +2,7 @@ import Token from '../models/Token.js'
 import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import Department from '../models/Department.js'
-import { TOKEN_STATUS, QUEUE_ACTIONS } from '../utils/constants.js'
+import { TOKEN_STATUS, QUEUE_ACTIONS, SOCKET_EVENTS } from '../utils/constants.js'
 
 export class QueueService {
   // Calculate estimated wait time for a token
@@ -154,6 +154,9 @@ export class QueueService {
     // Update wait times for remaining tokens
     await this.updateQueueWaitTimes(counter.branchId, counter.departmentId)
 
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(counter.branchId, counter.departmentId)
+
     return nextToken
   }
 
@@ -193,6 +196,9 @@ export class QueueService {
       }
     })
 
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(token.branchId, token.departmentId)
+
     return token
   }
 
@@ -231,6 +237,9 @@ export class QueueService {
         reason
       }
     })
+
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(token.branchId, token.departmentId)
 
     return token
   }
@@ -279,6 +288,9 @@ export class QueueService {
       }
     })
 
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(token.branchId, token.departmentId)
+
     return token
   }
 
@@ -305,6 +317,9 @@ export class QueueService {
       performedBy,
       metadata: statusUpdate.metadata
     })
+
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(token.branchId, token.departmentId)
 
     return token
   }
@@ -339,7 +354,24 @@ export class QueueService {
       }
     })
 
+    // Emit socket event for real-time updates
+    this._emitQueueUpdate(token.branchId, token.departmentId)
+
     return token
+  }
+
+  /**
+   * Helper to emit queue updates via Socket.IO
+   */
+  static _emitQueueUpdate(branchId, departmentId) {
+    if (global.io) {
+      const room = departmentId ? `${branchId}-${departmentId}` : branchId.toString();
+      global.io.to(room).emit(SOCKET_EVENTS.QUEUE_UPDATED, {
+        branchId,
+        departmentId,
+        timestamp: new Date()
+      });
+    }
   }
 
   // Update wait times for all tokens in queue

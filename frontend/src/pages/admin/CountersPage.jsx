@@ -35,7 +35,7 @@ const CountersPage = () => {
       return res.data
     }
   })
-  const branches = branchesResponse?.data || []
+  const branches = branchesResponse?.data?.branches || branchesResponse?.data || []
 
   // Auto-select first branch
   useEffect(() => {

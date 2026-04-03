@@ -14,7 +14,10 @@ const walkInSchema = z.object({
   userId: z.string().optional(),
   name: z.string().min(2, 'Name is required when no user is selected'),
   email: z.string().email('Valid email is required when no user is selected'),
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(
+    val => !val || /^\d{10}$/.test(val.replace(/\s+/g, '')), 
+    'Phone number must be exactly 10 digits'
+  ),
   priority: z.enum(['normal', 'high']).default('normal'),
   notes: z.string().max(500).optional()
 })
@@ -139,7 +142,7 @@ const WalkInToken = () => {
               disabled={branchesLoading}
             >
               <option value="">Select branch</option>
-              {branches?.data?.map((branch) => (
+              {branches?.data?.branches?.map((branch) => (
                 <option key={branch._id} value={branch._id}>
                   {branch.name}
                 </option>
@@ -161,7 +164,7 @@ const WalkInToken = () => {
               disabled={!watchedBranchId || departmentsLoading}
             >
               <option value="">Select department</option>
-              {departments?.data?.map((department) => (
+              {departments?.data?.departments?.map((department) => (
                 <option key={department._id} value={department._id}>
                   {department.name}
                 </option>
@@ -189,9 +192,9 @@ const WalkInToken = () => {
             </div>
             
             {/* Search Results */}
-            {searchResults?.data?.length > 0 && (
+            {searchResults?.data?.users?.length > 0 && (
               <div className="mt-2 border border-gray-200 rounded-md max-h-48 overflow-y-auto">
-                {searchResults.data.map((user) => (
+                {searchResults.data.users.map((user) => (
                   <div
                     key={user._id}
                     onClick={() => handleUserSelect(user)}

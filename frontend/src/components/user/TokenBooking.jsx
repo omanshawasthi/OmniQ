@@ -128,7 +128,7 @@ const TokenBooking = () => {
               disabled={branchesLoading}
             >
               <option value="">Choose a branch</option>
-              {branches?.data?.map((branch) => (
+              {branches?.data?.branches?.map((branch) => (
                 <option key={branch._id} value={branch._id}>
                   {branch.name} - {branch.address}
                 </option>
@@ -152,7 +152,7 @@ const TokenBooking = () => {
               disabled={!watchedBranchId || departmentsLoading}
             >
               <option value="">Choose a department</option>
-              {departments?.data?.map((department) => (
+              {departments?.data?.departments?.map((department) => (
                 <option key={department._id} value={department._id}>
                   {department.name}
                   {department.averageServiceTime && (

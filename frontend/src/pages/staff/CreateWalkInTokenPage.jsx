@@ -64,6 +64,15 @@ const CreateWalkInTokenPage = () => {
     if (!form.guestName.trim()) newErrors.guestName = 'Visitor name is required'
     if (!form.branchId) newErrors.branchId = 'Branch is required'
     if (!form.departmentId) newErrors.departmentId = 'Service is required'
+    
+    // Validate phone for consistency (10 digits)
+    if (form.guestPhone.trim()) {
+      const p = form.guestPhone.replace(/\D/g, '')
+      if (p.length !== 10) {
+        newErrors.guestPhone = 'Phone number must be exactly 10 digits'
+      }
+    }
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

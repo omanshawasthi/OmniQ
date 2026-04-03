@@ -22,8 +22,19 @@ export const TOKEN_STATUS = {
   SKIPPED: 'skipped',
   COMPLETED: 'completed',
   MISSED: 'missed',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  CHECKED_IN: 'checked_in'
 };
+
+// Active states that belong in the queue
+export const ACTIVE_QUEUE_STATES = [
+  TOKEN_STATUS.WAITING,
+  TOKEN_STATUS.CHECKED_IN,
+  TOKEN_STATUS.SERVING,
+  TOKEN_STATUS.HELD,
+  TOKEN_STATUS.SKIPPED
+];
 
 // Alias for compatibility
 export const TOKEN_STATES = TOKEN_STATUS;
@@ -137,7 +148,8 @@ export const QUEUE_ACTIONS = {
   RECALLED: 'RECALLED',
   TRANSFER: 'TRANSFER',
   CHECK_IN: 'CHECK_IN',
-  RESCHEDULED: 'RESCHEDULED'
+  RESCHEDULED: 'RESCHEDULED',
+  EXPIRED: 'EXPIRED'
 };
 
 // Socket.IO Room Types

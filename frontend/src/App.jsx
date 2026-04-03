@@ -37,6 +37,7 @@ import QueueControlPage from './pages/staff/QueueControlPage'
 import OperatorDashboard from './pages/OperatorDashboard'
 import AssignedQueuePage from './pages/operator/AssignedQueuePage'
 import ServeTokenPage from './pages/operator/ServeTokenPage'
+import PublicQueueDisplayPage from './pages/public/PublicQueueDisplayPage'
 
 // Guest-only wrapper: redirect authenticated users to their dashboard
 const GuestRoute = ({ children }) => {
@@ -74,6 +75,7 @@ function App() {
     <div className="min-h-screen">
       <Routes>
         <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/display/:branchId/:departmentId" element={<PublicQueueDisplayPage />} />
 
         {/* Guest-only routes — redirect logged-in users away */}
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

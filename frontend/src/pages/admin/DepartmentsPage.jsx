@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../services/api'
 import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Edit, Trash2, Plus, Loader2, Layers, LogOut } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Loader2, Layers, LogOut, Monitor } from 'lucide-react'
 
 // Default empty department structure
 const initialFormState = {
@@ -38,7 +38,7 @@ const DepartmentsPage = () => {
     }
   })
 
-  const branches = branchesResponse?.data || []
+  const branches = branchesResponse?.data?.branches || branchesResponse?.data || []
 
   // Default to first branch if none selected and branches exist
   React.useEffect(() => {
@@ -237,6 +237,15 @@ const DepartmentsPage = () => {
                        {dept.averageServiceTime} min
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link 
+                        to={`/display/${selectedBranchId}/${dept._id}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        title="Open Public Display"
+                      >
+                        <Monitor className="h-4 w-4 inline" />
+                      </Link>
                       <button onClick={() => handleOpenModal(dept)} className="text-indigo-600 hover:text-indigo-900 mr-4">
                         <Edit className="h-4 w-4 inline" />
                       </button>

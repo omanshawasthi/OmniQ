@@ -176,7 +176,7 @@ const QueueControl = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">All Branches</option>
-              {branches?.data?.map((branch) => (
+              {branches?.data?.branches?.map((branch) => (
                 <option key={branch._id} value={branch._id}>
                   {branch.name}
                 </option>
@@ -193,7 +193,7 @@ const QueueControl = () => {
               disabled={!selectedBranch}
             >
               <option value="">All Departments</option>
-              {departments?.data?.map((department) => (
+              {departments?.data?.departments?.map((department) => (
                 <option key={department._id} value={department._id}>
                   {department.name}
                 </option>
@@ -278,14 +278,14 @@ const QueueControl = () => {
       </div>
 
       {/* Counter Controls */}
-      {counters?.data?.length > 0 && (
+      {counters?.data?.counters?.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">Counter Controls</h2>
           </div>
           <div className="p-6">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {counters.data.map((counter) => (
+              {counters.data.counters.map((counter) => (
                 <div key={counter._id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-medium text-gray-900">{counter.name}</h3>

@@ -131,7 +131,7 @@ const BookingHistory = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">All Branches</option>
-              {branches?.data?.map((branch) => (
+              {branches?.data?.branches?.map((branch) => (
                 <option key={branch._id} value={branch._id}>
                   {branch.name}
                 </option>

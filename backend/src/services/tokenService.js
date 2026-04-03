@@ -65,6 +65,9 @@ export class TokenService {
   // Book online token
   static async bookToken(userId, tokenData) {
     const { branchId, departmentId, scheduledTime, priority = TOKEN_PRIORITY.NORMAL, notes } = tokenData
+    
+    // Validate phone for online tokens if user profile is being used or updated
+    // (Usually validated at user registration, but good to have here if needed)
 
     // Validate branch and department
     const branch = await Branch.findById(branchId)
@@ -145,6 +148,14 @@ export class TokenService {
   // Create walk-in token
   static async createWalkInToken(tokenData, createdBy) {
     const { branchId, departmentId, userId, name, email, phone, priority = TOKEN_PRIORITY.NORMAL, notes } = tokenData
+
+    // Validate phone number (exactly 10 digits)
+    if (phone) {
+      const phoneRegex = /^\d{10}$/
+      if (!phoneRegex.test(phone.replace(/\s+/g, ''))) {
+        throw new AppError('Phone number must be exactly 10 digits', 400)
+      }
+    }
 
     const branch = await Branch.findById(branchId)
     if (!branch || !branch.isActive) {

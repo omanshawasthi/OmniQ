@@ -36,7 +36,18 @@ const processQueue = (error, token = null) => {
 api.interceptors.response.use(
   (response) => {
     // Unwrap { success, data: { ... } } → return inner data directly
-    if (response.data?.data !== undefined) return response.data.data;
+    const innerData = response.data?.data;
+    if (innerData !== undefined) {
+      // Compatibility Layer: If the backend returned a paginated object instead of a flat array,
+      // we unwrap the primary entity array for legacy components that expect it.
+      if (innerData.branches && Array.isArray(innerData.branches)) return innerData.branches;
+      if (innerData.departments && Array.isArray(innerData.departments)) return innerData.departments;
+      if (innerData.counters && Array.isArray(innerData.counters)) return innerData.counters;
+      if (innerData.users && Array.isArray(innerData.users)) return innerData.users;
+      if (innerData.tokens && Array.isArray(innerData.tokens)) return innerData.tokens;
+      
+      return innerData;
+    }
     if (response.data !== undefined) return response.data;
     return response;
   },
@@ -106,6 +117,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   refreshToken: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
   getMe: () => api.get('/auth/profile'),
+  updateProfile: (userData) => api.put('/auth/profile', userData),
 };
 
 // ── Dashboard API (user side) ─────────────────────────────────────────────────

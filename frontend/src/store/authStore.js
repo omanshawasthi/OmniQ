@@ -119,6 +119,17 @@ export const useAuthStore = create(
       },
 
       setUser: (user) => set({ user }),
+      updateProfile: async (userData) => {
+        set({ isLoading: true })
+        try {
+          const updatedUser = await authAPI.updateProfile(userData)
+          set({ user: { ...get().user, ...updatedUser }, isLoading: false })
+          return updatedUser
+        } catch (error) {
+          set({ isLoading: false })
+          throw error
+        }
+      },
 
       // ── Getters ────────────────────────────────────────────────────────────
       hasRole: (role) => get().user?.role === role,

@@ -47,7 +47,7 @@ const BranchesPage = () => {
     }
   })
 
-  const branches = response?.data || []
+  const branches = response?.data?.branches || response?.data || []
 
   // Filter branches locally for simplicity
   const filteredBranches = branches.filter(b => 

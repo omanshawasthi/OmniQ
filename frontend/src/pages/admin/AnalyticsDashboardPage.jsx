@@ -63,7 +63,7 @@ const AnalyticsDashboardPage = () => {
     queryKey: ['branches'],
     queryFn: async () => {
       const response = await apiClient.branches.getAll();
-      return response.data.data;
+      return response.data.data.branches || response.data.data;
     }
   });
 
@@ -72,7 +72,7 @@ const AnalyticsDashboardPage = () => {
     queryKey: ['departments', selectedBranch],
     queryFn: async () => {
       const response = await apiClient.departments.getAll(selectedBranch);
-      return response.data.data;
+      return response.data.data.departments || response.data.data;
     },
     enabled: !!selectedBranch
   });

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { TOKEN_STATUS, TOKEN_PRIORITY, BOOKING_TYPE } from '../utils/constants.js';
+import { TOKEN_STATUS, TOKEN_PRIORITY, BOOKING_TYPE, ACTIVE_QUEUE_STATES } from '../utils/constants.js';
 
 const tokenSchema = new mongoose.Schema({
   tokenNumber: {
@@ -8,7 +8,7 @@ const tokenSchema = new mongoose.Schema({
     unique: true,
     uppercase: true,
     trim: true,
-    match: [/^[A-Z]{1,3}\d{1,4}$/, 'Token number must be in format like A001, AB123']
+    match: [/^[A-Z0-9-]{1,25}$/, 'Token number must be a valid alphanumeric string with optional hyphens']
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,6 +45,15 @@ const tokenSchema = new mongoose.Schema({
     enum: Object.values(TOKEN_STATUS),
     default: TOKEN_STATUS.WAITING
   },
+  queueDate: {
+    type: Date,
+    required: false,
+    index: true
+  },
+  isActiveQueue: {
+    type: Boolean,
+    default: true
+  },
   scheduledTime: {
     type: Date,
     required: [true, 'Scheduled time is required']
@@ -60,6 +69,23 @@ const tokenSchema = new mongoose.Schema({
   completedAt: {
     type: Date,
     default: null
+  },
+  expiredAt: {
+    type: Date,
+    default: null
+  },
+  missedAt: {
+    type: Date,
+    default: null
+  },
+  cancelledAt: {
+    type: Date,
+    default: null
+  },
+  source: {
+    type: String,
+    enum: ['web', 'app', 'kiosk', 'walk-in'],
+    default: 'web'
   },
   recommendedArrivalTime: {
     type: Date,
@@ -210,6 +236,13 @@ tokenSchema.methods.updateStatus = function(newStatus, performedBy, reason = '')
       break;
     case TOKEN_STATUS.MISSED:
       this.noShowCount += 1;
+      this.missedAt = now;
+      break;
+    case TOKEN_STATUS.EXPIRED:
+      this.expiredAt = now;
+      break;
+    case TOKEN_STATUS.CANCELLED:
+      this.cancelledAt = now;
       break;
   }
 
@@ -221,6 +254,24 @@ tokenSchema.methods.updateStatus = function(newStatus, performedBy, reason = '')
     timestamp: now
   };
 };
+
+// Pre-save hook to automatically sync isActiveQueue and queueDate
+tokenSchema.pre('save', function(next) {
+  // Sync isActiveQueue based on status
+  if (this.isModified('status')) {
+    this.isActiveQueue = ACTIVE_QUEUE_STATES.includes(this.status);
+  }
+  
+  // Ensure queueDate is always set (standardized to start of day)
+  if (this.isNew || this.isModified('scheduledTime')) {
+    const baseDate = this.scheduledTime || this.createdAt || new Date();
+    const qDate = new Date(baseDate);
+    qDate.setHours(0, 0, 0, 0);
+    this.queueDate = qDate;
+  }
+  
+  next();
+});
 
 // Index for faster queries
 tokenSchema.index({ userId: 1 });
@@ -235,6 +286,7 @@ tokenSchema.index({
   branchId: 1, 
   departmentId: 1, 
   status: 1, 
+  isActiveQueue: 1,
   priority: 1, 
   scheduledTime: 1 
 });

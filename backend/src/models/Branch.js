@@ -108,7 +108,7 @@ branchSchema.virtual('isOpen').get(function() {
   if (!this.isActive) return false;
   
   const now = new Date();
-  const dayName = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
   
   const todayHours = this.operatingHours[dayName];

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, User, Mail, Phone, Edit3, Save } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
+import toast from 'react-hot-toast'
 
 const ProfilePage = () => {
+  const { user, updateProfile, isLoading: isUpdating } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -10,19 +13,18 @@ const ProfilePage = () => {
     phone: '',
     notifications: true
   })
-  const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // Load user data from auth store or localStorage
-    const userData = JSON.parse(localStorage.getItem('user') || '{}')
-    setFormData({
-      name: userData.name || '',
-      email: userData.email || '',
-      phone: userData.phone || '',
-      notifications: userData.notifications !== false
-    })
-  }, [])
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        notifications: user.notifications !== false
+      })
+    }
+  }, [user])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -34,43 +36,27 @@ const ProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
     setMessage('')
-
     try {
-      // Simulate API call to update profile
-      console.log('Updating profile:', formData)
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Update localStorage
-      const updatedUser = {
-        ...JSON.parse(localStorage.getItem('user') || '{}'),
-        ...formData
-      }
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      
-      setMessage('Profile updated successfully!')
+      await updateProfile(formData)
+      toast.success('Profile updated successfully!')
       setIsEditing(false)
-      setIsLoading(false)
     } catch (error) {
-      console.error('Profile update error:', error)
-      setMessage('Failed to update profile. Please try again.')
-      setIsLoading(false)
+      toast.error(error.response?.data?.message || 'Failed to update profile')
     }
   }
 
   const handleCancel = () => {
     setIsEditing(false)
     // Reset form to original values
-    const userData = JSON.parse(localStorage.getItem('user') || '{}')
-    setFormData({
-      name: userData.name || '',
-      email: userData.email || '',
-      phone: userData.phone || '',
-      notifications: userData.notifications !== false
-    })
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        notifications: user.notifications !== false
+      })
+    }
     setMessage('')
   }
 
@@ -188,10 +174,10 @@ const ProfilePage = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isUpdating}
                     className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? (
+                    {isUpdating ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-white mr-2"></div>
                         Saving...

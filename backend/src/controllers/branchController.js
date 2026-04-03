@@ -52,11 +52,14 @@ export const getBranches = asyncHandler(async (req, res) => {
     ]
   }
 
+  const p = Math.max(1, parseInt(page) || 1)
+  const l = Math.max(1, parseInt(limit) || 20)
+
   const branches = await Branch.find(query)
-    .populate('departments', 'name')
+    .populate('departments') // Simplified populate for virtual
     .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
+    .limit(l)
+    .skip((p - 1) * l)
 
   const total = await Branch.countDocuments(query)
 
@@ -131,12 +134,12 @@ export const deleteBranch = asyncHandler(async (req, res) => {
   }
 
   // Check if branch has active departments
-  const activeDepartments = await Department.countDocuments({
+  const activeDepartmentsCount = await Department.countDocuments({
     branchId: id,
     isActive: true
   })
 
-  if (activeDepartments > 0) {
+  if (activeDepartmentsCount > 0) {
     return res.status(400).json({
       success: false,
       message: 'Cannot delete branch with active departments'
@@ -148,6 +151,27 @@ export const deleteBranch = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Branch deleted successfully'
+  })
+})
+
+// Get all departments for a specific branch
+export const getBranchDepartments = asyncHandler(async (req, res) => {
+  const { id } = req.params
+
+  const branch = await Branch.findById(id)
+  if (!branch) {
+    return res.status(404).json({
+      success: false,
+      message: 'Branch not found'
+    })
+  }
+
+  const departments = await Department.find({ branchId: id })
+    .sort({ sortOrder: 1, name: 1 })
+
+  res.status(200).json({
+    success: true,
+    data: { departments }
   })
 })
 
