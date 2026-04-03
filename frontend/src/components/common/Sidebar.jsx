@@ -30,21 +30,21 @@ const Sidebar = () => {
       },
       {
         name: 'Book Token',
-        href: '/book-token',
+        href: '/user/book-token',
         icon: Calendar,
-        current: location.pathname === '/book-token'
+        current: location.pathname === '/user/book-token'
       },
       {
         name: 'Queue Status',
-        href: '/queue-status',
+        href: '/user/queue-status',
         icon: Clock,
-        current: location.pathname === '/queue-status'
+        current: location.pathname === '/user/queue-status'
       },
       {
         name: 'History',
-        href: '/history',
+        href: '/user/history',
         icon: History,
-        current: location.pathname === '/history'
+        current: location.pathname === '/user/history'
       },
     ] : []),
     
@@ -52,27 +52,27 @@ const Sidebar = () => {
     ...(hasRole('staff') ? [
       {
         name: 'Dashboard',
-        href: '/dashboard',
+        href: '/staff',
         icon: Home,
-        current: location.pathname === '/dashboard'
+        current: location.pathname === '/staff'
       },
       {
         name: 'Walk-in Token',
-        href: '/walk-in',
+        href: '/staff/walk-in',
         icon: Users,
-        current: location.pathname === '/walk-in'
+        current: location.pathname === '/staff/walk-in'
       },
       {
         name: 'Queue Control',
-        href: '/queue-control',
+        href: '/staff/queue-control',
         icon: Settings,
-        current: location.pathname === '/queue-control'
+        current: location.pathname === '/staff/queue-control'
       },
       {
         name: 'Search Tokens',
-        href: '/search',
+        href: '/staff/search',
         icon: Search,
-        current: location.pathname === '/search'
+        current: location.pathname === '/staff/search'
       },
     ] : []),
     
@@ -80,21 +80,21 @@ const Sidebar = () => {
     ...(hasRole('operator') ? [
       {
         name: 'Dashboard',
-        href: '/dashboard',
+        href: '/operator',
         icon: Home,
-        current: location.pathname === '/dashboard'
+        current: location.pathname === '/operator'
       },
       {
         name: 'Assigned Queue',
-        href: '/assigned-queue',
+        href: '/operator/assigned-queue',
         icon: Users,
-        current: location.pathname === '/assigned-queue'
+        current: location.pathname === '/operator/assigned-queue'
       },
       {
         name: 'Serve Token',
-        href: '/serve-token',
+        href: '/operator/serve-token',
         icon: Calendar,
-        current: location.pathname === '/serve-token'
+        current: location.pathname === '/operator/serve-token'
       },
     ] : []),
     
@@ -102,33 +102,33 @@ const Sidebar = () => {
     ...(hasRole('admin') ? [
       {
         name: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin',
         icon: Home,
-        current: location.pathname === '/dashboard'
+        current: location.pathname === '/admin'
       },
       {
         name: 'Manage Users',
-        href: '/users',
+        href: '/admin/users',
         icon: Users,
-        current: location.pathname === '/users'
+        current: location.pathname === '/admin/users'
       },
       {
         name: 'Manage Branches',
-        href: '/branches',
+        href: '/admin/branches',
         icon: Building,
-        current: location.pathname === '/branches'
+        current: location.pathname === '/admin/branches'
       },
       {
         name: 'Analytics',
-        href: '/analytics',
+        href: '/admin/analytics',
         icon: BarChart3,
-        current: location.pathname === '/analytics'
+        current: location.pathname === '/admin/analytics'
       },
       {
         name: 'Settings',
-        href: '/settings',
+        href: '/admin/settings',
         icon: Settings,
-        current: location.pathname === '/settings'
+        current: location.pathname === '/admin/settings'
       },
     ] : []),
   ]

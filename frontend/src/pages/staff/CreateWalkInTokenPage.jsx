@@ -40,8 +40,9 @@ const CreateWalkInTokenPage = () => {
 
   const loadBranches = async () => {
     try {
-      const data = await branchAPI.getBranches()
-      setBranches(data || [])
+      const res = await branchAPI.getBranches()
+      const list = Array.isArray(res) ? res : (res?.branches || [])
+      setBranches(list)
     } catch {
       toast.error('Failed to load branches')
     } finally {
@@ -51,8 +52,9 @@ const CreateWalkInTokenPage = () => {
 
   const loadDepartments = async (branchId) => {
     try {
-      const data = await branchAPI.getBranchDepartments(branchId)
-      setDepartments(data || [])
+      const res = await branchAPI.getBranchDepartments(branchId)
+      const list = Array.isArray(res) ? res : (res?.departments || [])
+      setDepartments(list)
       setForm(prev => ({ ...prev, departmentId: '' }))
     } catch {
       toast.error('Failed to load departments')

@@ -1,6 +1,24 @@
 import { QueueService } from '../services/queueService.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
 
+// Get today's queue
+export const getTodayQueue = asyncHandler(async (req, res) => {
+  const { branchId, departmentId, counterId, status } = req.query;
+  
+  // The service expects an object with these filters
+  const todayQueue = await QueueService.getTodayQueue({
+    branchId: branchId || req.user?.branchId,
+    departmentId,
+    counterId,
+    status
+  });
+
+  res.status(200).json({
+    success: true,
+    data: todayQueue
+  });
+});
+
 // Get queue status
 export const getQueueStatus = asyncHandler(async (req, res) => {
   const { branchId, departmentId } = req.params

@@ -39,12 +39,16 @@ api.interceptors.response.use(
     const innerData = response.data?.data;
     if (innerData !== undefined) {
       // Compatibility Layer: If the backend returned a paginated object instead of a flat array,
-      // we unwrap the primary entity array for legacy components that expect it.
-      if (innerData.branches && Array.isArray(innerData.branches)) return innerData.branches;
-      if (innerData.departments && Array.isArray(innerData.departments)) return innerData.departments;
-      if (innerData.counters && Array.isArray(innerData.counters)) return innerData.counters;
-      if (innerData.users && Array.isArray(innerData.users)) return innerData.users;
-      if (innerData.tokens && Array.isArray(innerData.tokens)) return innerData.tokens;
+      // we unwrap the primary entity array *only if* it doesn't look like a paginated response.
+      const isPaginated = innerData.totalPages !== undefined || innerData.total !== undefined || innerData.totalResults !== undefined;
+
+      if (!isPaginated) {
+        if (innerData.branches && Array.isArray(innerData.branches)) return innerData.branches;
+        if (innerData.departments && Array.isArray(innerData.departments)) return innerData.departments;
+        if (innerData.counters && Array.isArray(innerData.counters)) return innerData.counters;
+        if (innerData.users && Array.isArray(innerData.users)) return innerData.users;
+        if (innerData.tokens && Array.isArray(innerData.tokens)) return innerData.tokens;
+      }
       
       return innerData;
     }

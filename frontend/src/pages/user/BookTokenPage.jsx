@@ -34,8 +34,10 @@ const BookTokenPage = () => {
 
   const loadDepartments = async () => {
     try {
-      const departmentsResponse = await branchAPI.getBranchDepartments(formData.branch)
-      setDepartments(departmentsResponse || [])
+      const res = await branchAPI.getBranchDepartments(formData.branch)
+      // Handle both flat array and paginated object (res.departments)
+      const list = Array.isArray(res) ? res : (res?.departments || [])
+      setDepartments(list)
     } catch (error) {
       console.error('Error loading departments:', error)
       setError('Failed to load departments')
@@ -45,14 +47,16 @@ const BookTokenPage = () => {
   const loadBookingData = async () => {
     try {
       // Load real branches from backend
-      const branchesResponse = await branchAPI.getBranches()
-      
-      setBranches(branchesResponse || [])
+      const res = await branchAPI.getBranches()
+      // Handle both flat array and paginated object (res.branches)
+      const list = Array.isArray(res) ? res : (res?.branches || [])
+      setBranches(list)
       
       // Load departments when branch is selected
       if (formData.branch) {
-        const departmentsResponse = await branchAPI.getBranchDepartments(formData.branch)
-        setDepartments(departmentsResponse || [])
+        const dRes = await branchAPI.getBranchDepartments(formData.branch)
+        const dList = Array.isArray(dRes) ? dRes : (dRes?.departments || [])
+        setDepartments(dList)
       }
       
       setLoadingData(false)

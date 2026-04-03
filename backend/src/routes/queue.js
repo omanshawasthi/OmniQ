@@ -8,7 +8,8 @@ import {
   holdToken,
   completeToken,
   recallToken,
-  checkInToken
+  checkInToken,
+  getTodayQueue
 } from '../controllers/queueController.js'
 import {
   queueActionSchema,
@@ -21,6 +22,9 @@ const router = express.Router()
 
 // Protected routes
 router.use(authenticate)
+
+// Get today's queue (accessible to all authenticated users)
+router.get('/today', asyncHandler(getTodayQueue))
 
 // Get queue status (accessible to all authenticated users)
 router.get('/status/:branchId', 
