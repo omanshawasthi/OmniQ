@@ -16,17 +16,20 @@ import Token from '../models/Token.js'
 import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import AppError from '../utils/AppError.js'
-import { TOKEN_STATUS, QUEUE_ACTIONS, TOKEN_PRIORITY } from '../utils/constants.js'
+import { TOKEN_STATUS, QUEUE_ACTIONS, TOKEN_PRIORITY, ACTIVE_QUEUE_STATES } from '../utils/constants.js'
+import { getStartOfToday } from '../utils/dateUtils.js'
 
 // ─── Transition Map (source of truth for valid moves) ────────────────────────
 const TRANSITIONS = {
-  [TOKEN_STATUS.WAITING]:   [TOKEN_STATUS.SERVING, TOKEN_STATUS.HELD, TOKEN_STATUS.SKIPPED, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
-  [TOKEN_STATUS.SERVING]:  [TOKEN_STATUS.COMPLETED, TOKEN_STATUS.HELD, TOKEN_STATUS.SKIPPED],
-  [TOKEN_STATUS.HELD]:     [TOKEN_STATUS.SERVING, TOKEN_STATUS.WAITING, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
-  [TOKEN_STATUS.SKIPPED]:  [TOKEN_STATUS.WAITING, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
-  [TOKEN_STATUS.MISSED]:   [TOKEN_STATUS.WAITING, TOKEN_STATUS.CANCELLED],
-  [TOKEN_STATUS.COMPLETED]: [],
-  [TOKEN_STATUS.CANCELLED]: []
+  [TOKEN_STATUS.WAITING]:    [TOKEN_STATUS.CHECKED_IN, TOKEN_STATUS.SERVING, TOKEN_STATUS.HELD, TOKEN_STATUS.SKIPPED, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
+  [TOKEN_STATUS.CHECKED_IN]: [TOKEN_STATUS.SERVING, TOKEN_STATUS.HELD, TOKEN_STATUS.SKIPPED, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
+  [TOKEN_STATUS.SERVING]:    [TOKEN_STATUS.COMPLETED, TOKEN_STATUS.HELD, TOKEN_STATUS.SKIPPED],
+  [TOKEN_STATUS.HELD]:       [TOKEN_STATUS.SERVING, TOKEN_STATUS.WAITING, TOKEN_STATUS.CHECKED_IN, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
+  [TOKEN_STATUS.SKIPPED]:    [TOKEN_STATUS.WAITING, TOKEN_STATUS.CHECKED_IN, TOKEN_STATUS.MISSED, TOKEN_STATUS.CANCELLED],
+  [TOKEN_STATUS.MISSED]:     [TOKEN_STATUS.WAITING, TOKEN_STATUS.CHECKED_IN, TOKEN_STATUS.CANCELLED],
+  [TOKEN_STATUS.COMPLETED]:  [],
+  [TOKEN_STATUS.CANCELLED]:  [],
+  [TOKEN_STATUS.EXPIRED]:    []
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,6 +107,74 @@ async function refreshWaitTimes(branchId, departmentId) {
 export class QueueLifecycleService {
 
   /**
+   * Helper to check valid transitions externally.
+   */
+  static canTransition(from, to) {
+    return (TRANSITIONS[from] || []).includes(to)
+  }
+
+  /**
+   * EXPERIMENTAL / CLEANUP
+   * 
+   * Finds active tokens from past days and expires them so they do not pollute 
+   * the Today-Only queue views. Operations are bulk scaled.
+   */
+  /**
+   * Finds active tokens from past days and expires them so they do not pollute 
+   * the Today-Only queue views. Operations are bulk scaled.
+   */
+  static async expireOldTokens() {
+    try {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      
+      // Find any stale active tokens (including those without queueDate for migration)
+      const oldTokens = await Token.find({
+        $or: [
+          { queueDate: { $lt: startOfToday } },
+          { scheduledTime: { $lt: startOfToday } },
+          { 
+            queueDate: { $exists: false },
+            createdAt: { $lt: startOfToday }
+          }
+        ],
+        isActiveQueue: true,
+        status: { $in: ACTIVE_QUEUE_STATES }
+      })
+
+      if (!oldTokens.length) return
+
+      const now = new Date()
+      const bulkOps = oldTokens.map(t => ({
+        updateOne: {
+          filter: { _id: t._id },
+          update: { 
+            $set: { 
+              status: TOKEN_STATUS.EXPIRED,
+              isActiveQueue: false,
+              expiredAt: now
+            } 
+          }
+        }
+      }))
+
+      await Token.bulkWrite(bulkOps)
+
+      // Log them for audit trail
+      for (const t of oldTokens) {
+        await log(t._id, QUEUE_ACTIONS.EXPIRED, null, null, {
+          reason: 'Automatically expired stale token from previous day',
+          previousStatus: t.status
+        })
+      }
+      
+      console.log(`[QueueLifecycle] Expired ${oldTokens.length} stale tokens.`)
+    } catch (err) {
+      console.error('[QueueLifecycle] Error expiring old tokens:', err.message)
+    }
+  }
+
+  /**
    * CALL NEXT
    * 
    * Finds and serves the next eligible WAITING token.
@@ -119,6 +190,9 @@ export class QueueLifecycleService {
     if (!branchId && !departmentId && !counterId) {
       throw new AppError('At least one of branchId, departmentId, or counterId is required.', 400)
     }
+
+    // Clean up stale tokens before checking the queue depth
+    await QueueLifecycleService.expireOldTokens()
 
     // Build search query
     const matchQuery = { status: TOKEN_STATUS.WAITING }
@@ -370,26 +444,35 @@ export class QueueLifecycleService {
    * Mark a token as physically present. Does not change status — just flags it.
    * Works for both waiting and held tokens.
    */
+  /**
+   * CHECK-IN TOKEN
+   * 
+   * Mark a token as physically present by changing its status to CHECKED_IN.
+   * This ensures the token remains in the active queue but prioritized for service.
+   */
   static async checkIn(tokenId, performedBy) {
     const token = await findTokenOrThrow(tokenId)
 
-    const checkInAllowed = [TOKEN_STATUS.WAITING, TOKEN_STATUS.HELD]
-    if (!checkInAllowed.includes(token.status)) {
-      throw new AppError(`Check-in not available for tokens in '${token.status}' status.`, 400)
+    if (token.status !== TOKEN_STATUS.WAITING) {
+      throw new AppError(`Only waiting tokens can be checked in. Current status: ${token.status}`, 400)
     }
 
-    if (token.checkedInAt) {
+    if (token.status === TOKEN_STATUS.CHECKED_IN || token.checkedInAt) {
       throw new AppError('Token is already checked in.', 400)
     }
 
+    const prevStatus = token.status
+    token.status = TOKEN_STATUS.CHECKED_IN
     token.checkedInAt = new Date()
     await token.save()
 
     await log(token._id, QUEUE_ACTIONS.CHECK_IN, performedBy, null, {
-      checkedInAt: token.checkedInAt,
-      tokenStatus: token.status
+      previousStatus: prevStatus,
+      newStatus: TOKEN_STATUS.CHECKED_IN,
+      checkedInAt: token.checkedInAt
     })
 
+    await refreshWaitTimes(token.branchId, token.departmentId)
     return token
   }
 }

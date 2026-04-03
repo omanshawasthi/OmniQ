@@ -9,21 +9,23 @@ import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS, QUEUE_ACTIO
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
 import AppError from '../utils/AppError.js'
+import { getStartOfToday, getDaysAgo } from '../utils/dateUtils.js'
+import { QueueLifecycleService } from './queueLifecycleService.js'
 
 export class TokenService {
   // Generate unique token number with concurrency safety
   static async generateTokenNumber(branchId, departmentId) {
     const today = new Date()
+    const datestring = today.toISOString().slice(0, 10).replace(/-/g, '') // YYYYMMDD
     today.setHours(0, 0, 0, 0)
     
-    // Get department prefix (first letter of department name)
+    // Get department prefix (first 3 letters of name)
     const department = await Department.findById(departmentId)
-    const prefix = department ? department.name.charAt(0).toUpperCase() : 'A'
+    const prefix = department ? department.name.slice(0, 3).toUpperCase() : 'TK'
     
     // Use atomic counter for concurrency safety
     const counterKey = `${branchId}_${departmentId}_${today.getTime()}`
     
-    // Use findOneAndUpdate with upsert for atomic counter increment
     const counterDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
       { key: counterKey },
       { $inc: { sequence: 1 }, $setOnInsert: { key: counterKey, date: today } },
@@ -32,20 +34,9 @@ export class TokenService {
     
     const counterResult = counterDoc?.value ?? counterDoc
     const sequence = counterResult?.sequence ?? 1
-    const tokenNumber = `${prefix}${String(sequence).padStart(3, '0')}`
     
-    // Double-check uniqueness
-    const existingToken = await Token.findOne({ tokenNumber })
-    if (existingToken) {
-      const retryDoc = await mongoose.connection.db.collection('tokenCounters').findOneAndUpdate(
-        { key: counterKey },
-        { $inc: { sequence: 1 } },
-        { returnDocument: 'after' }
-      )
-      const retryResult = retryDoc?.value ?? retryDoc
-      const retrySequence = retryResult?.sequence ?? sequence + 1
-      return `${prefix}${String(retrySequence).padStart(3, '0')}`
-    }
+    // Format: DEPT-YYYYMMDD-SEQ (e.g. OPD-20260403-001)
+    const tokenNumber = `${prefix}-${datestring}-${String(sequence).padStart(3, '0')}`
     
     return tokenNumber
   }
@@ -96,12 +87,14 @@ export class TokenService {
       throw new AppError('You already have an active token for this department', 400)
     }
 
-    // Generate token number and QR code
+    // Generate unique ID and token number
+    const tokenId = new mongoose.Types.ObjectId()
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
-    const qrCode = await this.generateQRCode('temp')
+    const qrCode = await this.generateQRCode(tokenId)
 
     // Create token
     const token = new Token({
+      _id: tokenId,
       tokenNumber,
       userId,
       branchId,
@@ -109,16 +102,13 @@ export class TokenService {
       bookingType: BOOKING_TYPE.ONLINE,
       priority,
       status: TOKEN_STATUS.WAITING,
+      source: 'web',
       scheduledTime,
       notes,
       qrCode,
       estimatedWaitTime: 0
     })
 
-    await token.save()
-
-    // Update QR code with actual token ID
-    token.qrCode = await this.generateQRCode(token._id)
     await token.save()
 
     // Log token creation
@@ -188,10 +178,12 @@ export class TokenService {
       }
     }
 
+    const tokenId = new mongoose.Types.ObjectId()
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
-    const qrCode = await this.generateQRCode('temp')
+    const qrCode = await this.generateQRCode(tokenId)
 
     const token = new Token({
+      _id: tokenId,
       tokenNumber,
       userId: userId || null,
       branchId,
@@ -199,6 +191,7 @@ export class TokenService {
       bookingType: BOOKING_TYPE.WALK_IN,
       priority,
       status: TOKEN_STATUS.WAITING,
+      source: 'walk-in',
       scheduledTime: new Date(),
       notes,
       qrCode,
@@ -214,8 +207,6 @@ export class TokenService {
       }
     }
 
-    await token.save()
-    token.qrCode = await this.generateQRCode(token._id)
     await token.save()
 
     await QueueLog.logAction({
@@ -239,9 +230,14 @@ export class TokenService {
     return token
   }
 
-  // Get user's tokens
+  // Get user's tokens with historical range and auto-expiry
   static async getUserTokens(userId, options = {}) {
-    const { status, branchId, departmentId, date, page = 1, limit = 20 } = options
+    // 1. Run lazy cleanup before returning history
+    if (typeof QueueLifecycleService !== 'undefined' && QueueLifecycleService.expireOldTokens) {
+      await QueueLifecycleService.expireOldTokens()
+    }
+
+    const { status, branchId, departmentId, date, dateRange = '30days', page = 1, limit = 50 } = options
     const query = { userId }
 
     if (status) {
@@ -255,12 +251,53 @@ export class TokenService {
     if (branchId) query.branchId = branchId
     if (departmentId) query.departmentId = departmentId
 
+    // Date filtering logic
     if (date) {
       const startOfDay = new Date(date)
       startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
-      query.scheduledTime = { $gte: startOfDay, $lte: endOfDay }
+      query.$or = [
+        { queueDate: startOfDay },
+        { 
+          queueDate: { $exists: false },
+          scheduledTime: { 
+            $gte: startOfDay, 
+            $lt: new Date(new Date(startOfDay).setDate(startOfDay.getDate() + 1)) 
+          }
+        }
+      ]
+    } else if (dateRange) {
+      switch (dateRange) {
+        case 'today':
+          const today = getStartOfToday()
+          query.$or = [
+            { queueDate: today },
+            { 
+              queueDate: { $exists: false },
+              scheduledTime: { $gte: today }
+            }
+          ]
+          break;
+        case '7days':
+          const sevenDaysAgo = getDaysAgo(7)
+          query.$or = [
+            { queueDate: { $gte: sevenDaysAgo } },
+            { 
+              queueDate: { $exists: false },
+              createdAt: { $gte: sevenDaysAgo }
+            }
+          ]
+          break;
+        case '30days':
+          const thirtyDaysAgo = getDaysAgo(30)
+          query.$or = [
+            { queueDate: { $gte: thirtyDaysAgo } },
+            { 
+              queueDate: { $exists: false },
+              createdAt: { $gte: thirtyDaysAgo }
+            }
+          ]
+          break;
+      }
     }
 
     const tokens = await Token.find(query)

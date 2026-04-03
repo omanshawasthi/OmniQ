@@ -3,6 +3,8 @@ import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import Department from '../models/Department.js'
 import { TOKEN_STATUS, QUEUE_ACTIONS, SOCKET_EVENTS } from '../utils/constants.js'
+import { getStartOfToday, getEndOfToday } from '../utils/dateUtils.js'
+import { QueueLifecycleService } from './queueLifecycleService.js'
 
 export class QueueService {
   // Calculate estimated wait time for a token
@@ -32,6 +34,48 @@ export class QueueService {
     await token.save()
 
     return estimatedWaitTime
+  }
+
+  // Get today's active queue
+  static async getTodayQueue({ branchId, departmentId, counterId, status }) {
+    // 1. Expire stale tokens first to ensure the queue is clean
+    await QueueLifecycleService.expireOldTokens()
+
+    const today = getStartOfToday()
+    const query = {
+      branchId,
+      isActiveQueue: true,
+      $or: [
+        { queueDate: today },
+        { 
+          queueDate: { $exists: false },
+          createdAt: { $gte: today } 
+        }
+      ]
+    }
+
+    if (departmentId) query.departmentId = departmentId
+    if (counterId) query.counterId = counterId
+    if (status) query.status = status
+
+    // Optional sorts: urgent first, then tokenNumber
+    const priorityOrder = { urgent: 3, high: 2, normal: 1 };
+    
+    // Using simple sort array based on priority strings might require aggregate for perfect sort if text,
+    // but we can sort by 'priority' (-1) and 'tokenNumber' (1) as requested.
+    const tokens = await Token.find(query)
+      .populate('userId', 'name phone')
+      .populate('departmentId', 'name')
+      .populate('counterId', 'name')
+      .sort([
+        { priority: -1 },
+        { tokenNumber: 1 }
+      ])
+
+    return {
+      tokens,
+      isTodayQueue: true
+    }
   }
 
   // Get queue status for a branch/department

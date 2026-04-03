@@ -1,18 +1,30 @@
 import Token from '../models/Token.js';
 import { TOKEN_STATUS, BOOKING_TYPE } from '../utils/constants.js';
+import { QueueLifecycleService } from './queueLifecycleService.js';
+import { getStartOfToday } from '../utils/dateUtils.js';
 
 export class StaffService {
   /**
    * Get queue statistics for today
    */
   static async getTodayStats(branchId) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Ensure stale tokens are expired before fetching stats
+    await QueueLifecycleService.expireOldTokens();
+
+    const today = getStartOfToday();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const query = {
-      createdAt: { $gte: today, $lt: tomorrow }
+      branchId,
+      isActiveQueue: true,
+      $or: [
+        { queueDate: today },
+        { 
+          queueDate: { $exists: false },
+          createdAt: { $gte: today } 
+        }
+      ]
     };
 
     if (branchId) {
@@ -50,35 +62,84 @@ export class StaffService {
    * Get today's queue list with search, status, source and priority filtering
    */
   static async getTodayQueue(branchId, options = {}) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Ensure stale tokens are expired before fetching queue
+    await QueueLifecycleService.expireOldTokens();
+
+    const { 
+      dateRange = 'today', 
+      status, 
+      source, 
+      priority, 
+      departmentId, 
+      search 
+    } = options;
+
+    const today = getStartOfToday();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const query = {
-      $or: [
-        { createdAt: { $gte: today, $lt: tomorrow } },
-        { scheduledTime: { $gte: today, $lt: tomorrow } }
-      ]
-    };
+    const query = {};
+
+    // Date Range logic
+    if (dateRange === 'today') {
+      // For Today, we strictly show active queue tokens
+      query.isActiveQueue = true;
+      query.$or = [
+        { queueDate: today },
+        { 
+          queueDate: { $exists: false },
+          createdAt: { $gte: today } 
+        }
+      ];
+    } else {
+      // Historical range
+      switch (dateRange) {
+        case 'today':
+          query.queueDate = today;
+          break;
+        case '7days':
+          const sevenDaysAgo = getDaysAgo(7);
+          query.$or = [
+            { queueDate: { $gte: sevenDaysAgo } },
+            { 
+              queueDate: { $exists: false },
+              createdAt: { $gte: sevenDaysAgo } 
+            }
+          ];
+          break;
+        case '30days':
+          const thirtyDaysAgo = getDaysAgo(30);
+          query.$or = [
+            { queueDate: { $gte: thirtyDaysAgo } },
+            { 
+              queueDate: { $exists: false },
+              createdAt: { $gte: thirtyDaysAgo } 
+            }
+          ];
+          break;
+        case 'all':
+          // No date filter
+          break;
+      }
+    }
 
     if (branchId) query.branchId = branchId;
-    if (options.departmentId) query.departmentId = options.departmentId;
+    if (departmentId) query.departmentId = departmentId;
 
     // Status filter (supports comma-separated multiple statuses)
-    if (options.status) {
-      const statuses = options.status.split(',').map(s => s.trim().toLowerCase());
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim().toLowerCase());
       query.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
     }
 
     // Source / bookingType filter
-    if (options.source) {
-      query.bookingType = options.source === 'walk-in' ? BOOKING_TYPE.WALK_IN : BOOKING_TYPE.ONLINE;
+    if (source) {
+      query.bookingType = source === 'walk-in' ? BOOKING_TYPE.WALK_IN : BOOKING_TYPE.ONLINE;
     }
 
     // Priority filter
-    if (options.priority) {
-      query.priority = options.priority.toLowerCase();
+    if (priority) {
+      query.priority = priority.toLowerCase();
     }
 
     let tokens = await Token.find(query)
@@ -86,11 +147,12 @@ export class StaffService {
       .populate('branchId', 'name')
       .populate('departmentId', 'name')
       .populate('counterId', 'name')
+      .sort({ createdAt: -1 })
       .lean();
 
     // Frontend search: filter by token number, guest name, user name, or phone
-    if (options.search) {
-      const term = options.search.toLowerCase().trim();
+    if (search) {
+      const term = search.toLowerCase().trim();
       tokens = tokens.filter(t => {
         const tokenNum = (t.tokenNumber || '').toLowerCase();
         const userName = (t.userId?.name || '').toLowerCase();
@@ -105,30 +167,32 @@ export class StaffService {
       });
     }
 
-    // Operational sort: SERVING > HELD > WAITING > COMPLETED > SKIPPED > MISSED > CANCELLED
-    const statusWeight = {
-      [TOKEN_STATUS.SERVING]: 1,
-      [TOKEN_STATUS.HELD]: 2,
-      [TOKEN_STATUS.WAITING]: 3,
-      [TOKEN_STATUS.COMPLETED]: 4,
-      [TOKEN_STATUS.SKIPPED]: 5,
-      [TOKEN_STATUS.MISSED]: 6,
-      [TOKEN_STATUS.CANCELLED]: 7
-    };
+    // Operational sort logic (Serving first) is only applied for Today
+    if (dateRange === 'today') {
+      const statusWeight = {
+        [TOKEN_STATUS.SERVING]: 1,
+        [TOKEN_STATUS.HELD]: 2,
+        [TOKEN_STATUS.WAITING]: 3,
+        [TOKEN_STATUS.COMPLETED]: 4,
+        [TOKEN_STATUS.SKIPPED]: 5,
+        [TOKEN_STATUS.MISSED]: 6,
+        [TOKEN_STATUS.CANCELLED]: 7
+      };
 
-    const priorityWeight = { urgent: 1, high: 2, normal: 3 };
+      const priorityWeight = { urgent: 1, high: 2, normal: 3 };
 
-    tokens.sort((a, b) => {
-      const wA = statusWeight[a.status] || 99;
-      const wB = statusWeight[b.status] || 99;
-      if (wA !== wB) return wA - wB;
+      tokens.sort((a, b) => {
+        const wA = statusWeight[a.status] || 99;
+        const wB = statusWeight[b.status] || 99;
+        if (wA !== wB) return wA - wB;
 
-      const pA = priorityWeight[a.priority] || 99;
-      const pB = priorityWeight[b.priority] || 99;
-      if (pA !== pB) return pA - pB;
+        const pA = priorityWeight[a.priority] || 99;
+        const pB = priorityWeight[b.priority] || 99;
+        if (pA !== pB) return pA - pB;
 
-      return new Date(a.scheduledTime || a.createdAt) - new Date(b.scheduledTime || b.createdAt);
-    });
+        return new Date(a.scheduledTime || a.createdAt) - new Date(b.scheduledTime || b.createdAt);
+      });
+    }
 
     return tokens;
   }
