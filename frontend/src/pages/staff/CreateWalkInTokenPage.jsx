@@ -27,7 +27,11 @@ const CreateWalkInTokenPage = () => {
 
   useEffect(() => {
     loadBranches()
-  }, [])
+    // Pre-select branch if staff member is assigned to one
+    if (user?.assignedBranch) {
+      setForm(prev => ({ ...prev, branchId: user.assignedBranch }))
+    }
+  }, [user?.assignedBranch])
 
   useEffect(() => {
     if (form.branchId) {
@@ -239,25 +243,34 @@ const CreateWalkInTokenPage = () => {
                 />
               </div>
 
-              {/* Branch */}
-              <div>
-                <label htmlFor="branchId" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Branch <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="branchId"
-                  name="branchId"
-                  value={form.branchId}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${errors.branchId ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                >
-                  <option value="">Select a branch</option>
-                  {branches.map(b => (
-                    <option key={b._id} value={b._id}>{b.name}</option>
-                  ))}
-                </select>
-                {errors.branchId && <p className="text-red-500 text-xs mt-1">{errors.branchId}</p>}
-              </div>
+              {/* Branch - Hidden for staff but visible/selectable for Admin */}
+              {user?.role !== 'STAFF' ? (
+                <div>
+                  <label htmlFor="branchId" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Branch <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="branchId"
+                    name="branchId"
+                    value={form.branchId}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${errors.branchId ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                  >
+                    <option value="">Select a branch</option>
+                    {branches.map(b => (
+                      <option key={b._id} value={b._id}>{b.name}</option>
+                    ))}
+                  </select>
+                  {errors.branchId && <p className="text-red-500 text-xs mt-1">{errors.branchId}</p>}
+                </div>
+              ) : (
+                <div className="md:col-span-2 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mb-2">
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-0.5">Assigned Hospital</p>
+                  <p className="text-sm font-black text-blue-900">
+                    {branches.find(b => b._id === form.branchId)?.name || 'Loading Hospital Info...'}
+                  </p>
+                </div>
+              )}
 
               {/* Department */}
               <div>

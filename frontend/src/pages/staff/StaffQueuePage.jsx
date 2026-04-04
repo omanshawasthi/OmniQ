@@ -5,8 +5,9 @@ import {
   UserPlus, Filter, ChevronRight, Play, CheckSquare, SkipForward,
   PauseCircle, RotateCcw, UserX, UserCheck
 } from 'lucide-react'
-import { staffAPI } from '../../utils/api'
+import { staffAPI, branchAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
+import socketService from '../../services/socketService'
 import toast from 'react-hot-toast'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -164,6 +165,7 @@ const StaffQueuePage = () => {
   const { logout, user } = useAuthStore()
 
   const [tokens, setTokens]           = useState([])
+  const [departments, setDepartments] = useState([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -178,6 +180,7 @@ const StaffQueuePage = () => {
     status: searchParams.get('status') || '', 
     source: '', 
     priority: '', 
+    department: searchParams.get('department') || '',
     dateRange: initialDateRange
   })
 
@@ -186,11 +189,12 @@ const StaffQueuePage = () => {
     setError('')
     try {
       const params = {}
-      if (filters.search)    params.search    = filters.search
-      if (filters.status)    params.status    = filters.status
-      if (filters.source)    params.source    = filters.source
-      if (filters.priority)  params.priority  = filters.priority
-      if (filters.dateRange) params.dateRange = filters.dateRange
+      if (filters.search)     params.search       = filters.search
+      if (filters.status)     params.status       = filters.status
+      if (filters.source)     params.source       = filters.source
+      if (filters.priority)   params.priority     = filters.priority
+      if (filters.department) params.departmentId = filters.department
+      if (filters.dateRange)  params.dateRange    = filters.dateRange
       const data = await staffAPI.getTodayQueue(params)
       setTokens(data || [])
     } catch {
@@ -198,7 +202,46 @@ const StaffQueuePage = () => {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, user?.assignedBranch])
+
+  // Fetch departments for current branch
+  useEffect(() => {
+    if (user?.assignedBranch) {
+      branchAPI.getBranchDepartments(user.assignedBranch)
+        .then(data => setDepartments(data || []))
+        .catch(err => console.error("Failed to load departments:", err))
+    }
+  }, [user?.assignedBranch])
+
+  // Real-time sync via sockets
+  useEffect(() => {
+    if (!user?.assignedBranch) return
+
+    // Connect and join branch room
+    socketService.connect()
+    socketService.joinBranch(user.assignedBranch)
+
+    // Listen for updates
+    const handleUpdate = (data) => {
+      console.log('🔄 Queue update received via socket:', data)
+      // If it's a creation or status change, reload the list
+      loadQueue()
+      
+      // Optionally show a notification for new tokens if we are on the first page
+      if (data.action === 'created') {
+        toast.success(`New Token: ${data.tokenNumber}`, { id: 'socket-new-token' })
+      }
+    }
+
+    socketService.on('queue_updated', handleUpdate)
+
+    return () => {
+      socketService.off('queue_updated', handleUpdate)
+      // We don't disconnect fully as other pages might use it, 
+      // but we could leave the room if needed.
+    }
+  }, [user?.assignedBranch, loadQueue])
+
 
   useEffect(() => {
     const h = setTimeout(loadQueue, filters.search ? 300 : 0)
@@ -209,9 +252,9 @@ const StaffQueuePage = () => {
     setFilters(prev => ({ ...prev, [key]: val }))
 
   const clearFilters = () =>
-    setFilters({ search: '', status: '', source: '', priority: '', dateRange: 'today' })
+    setFilters({ search: '', status: '', source: '', priority: '', department: '', dateRange: 'today' })
 
-  const hasActiveFilters = filters.status || filters.source || filters.priority
+  const hasActiveFilters = filters.status || filters.source || filters.priority || filters.department
 
   // ── Queue Actions ───────────────────────────────────────────────────────────
   const handleAction = async (tokenId, action, token) => {
@@ -247,7 +290,7 @@ const StaffQueuePage = () => {
     if (callingNext) return
     setCallingNext(true)
     try {
-      const branchId = user?.branchId
+      const branchId = user?.assignedBranch
       const token = await staffAPI.callNext({ branchId })
       toast.success(`Calling ${token.tokenNumber}!`)
       await loadQueue()
@@ -315,6 +358,36 @@ const StaffQueuePage = () => {
             <UserPlus className="w-4 h-4" /> Walk-in
           </Link>
         </div>
+
+        {/* Department Filters */}
+        {departments && departments.length > 0 && (
+          <div className="mb-4 flex flex-nowrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => handleFilterChange('department', '')}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                !filters.department
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+              }`}
+            >
+              All Departments
+            </button>
+            {departments.map((dept) => (
+              <button
+                key={dept._id}
+                onClick={() => handleFilterChange('department', dept._id)}
+                className={`whitespace-nowrap flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                  filters.department === dept._id
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                }`}
+              >
+                {dept.icon && <span>{dept.icon}</span>}
+                {dept.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search + Filter + Time Range */}
         <div className="mb-4 flex flex-col sm:flex-row gap-3">
