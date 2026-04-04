@@ -1,9 +1,21 @@
 import Token from '../models/Token.js';
-import { TOKEN_STATUS, BOOKING_TYPE } from '../utils/constants.js';
+import User from '../models/User.js';
+import { TOKEN_STATUS, BOOKING_TYPE, ROLES } from '../utils/constants.js';
 import { QueueLifecycleService } from './queueLifecycleService.js';
 import { getStartOfToday } from '../utils/dateUtils.js';
 
 export class StaffService {
+  /**
+   * Get all staff members for a specific branch
+   */
+  static async getBranchStaff(branchId) {
+    return await User.find({
+      assignedBranch: branchId,
+      role: ROLES.STAFF, // Use constant to ensure lowercase 'staff' match
+      isActive: true
+    }).select('name email phone createdAt');
+  }
+
   /**
    * Get queue statistics for today
    */
@@ -146,7 +158,6 @@ export class StaffService {
       .populate('userId', 'name email phone')
       .populate('branchId', 'name')
       .populate('departmentId', 'name')
-      .populate('counterId', 'name')
       .sort({ createdAt: -1 })
       .lean();
 

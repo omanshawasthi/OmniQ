@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate, requireAnyRole } from '../middleware/auth.js';
-import { getTodayQueueStats, getTodayQueue, createWalkInToken } from '../src/controllers/staffController.js';
+import { getTodayQueueStats, getTodayQueue, createWalkInToken, getBranchStaff } from '../src/controllers/staffController.js';
 import {
   callNext,
   serveToken,
@@ -20,6 +20,7 @@ router.use(authenticate, requireAnyRole('STAFF', 'ADMIN'));
 // ─── Dashboard & Queue View ───────────────────────────────────────────────────
 router.get('/stats/today',  getTodayQueueStats);
 router.get('/queue/today',  getTodayQueue);
+router.get('/team',         getBranchStaff);
 
 // ─── Walk-in Creation ─────────────────────────────────────────────────────────
 router.post('/walk-in', createWalkInToken);

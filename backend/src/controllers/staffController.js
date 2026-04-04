@@ -3,7 +3,7 @@ import { TokenService } from '../services/tokenService.js';
 
 export const getTodayQueueStats = async (req, res, next) => {
   try {
-    const branchId = req.query.branchId || req.user.branchId;
+    const branchId = req.query.branchId || req.user.assignedBranch;
     const stats = await StaffService.getTodayStats(branchId);
     res.status(200).json({ success: true, data: stats });
   } catch (error) {
@@ -13,7 +13,7 @@ export const getTodayQueueStats = async (req, res, next) => {
 
 export const getTodayQueue = async (req, res, next) => {
   try {
-    const branchId = req.query.branchId || req.user.branchId;
+    const branchId = req.query.branchId || req.user.assignedBranch;
     const { departmentId, status, source, priority, search } = req.query;
 
     const queue = await StaffService.getTodayQueue(branchId, {
@@ -34,6 +34,16 @@ export const createWalkInToken = async (req, res, next) => {
   try {
     const token = await TokenService.createWalkInToken(req.body, req.user);
     res.status(201).json({ success: true, data: token });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getBranchStaff = async (req, res, next) => {
+  try {
+    const branchId = req.user.assignedBranch;
+    const staff = await StaffService.getBranchStaff(branchId);
+    res.status(200).json({ success: true, data: staff });
   } catch (error) {
     next(error);
   }

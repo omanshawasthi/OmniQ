@@ -45,7 +45,6 @@ api.interceptors.response.use(
       if (!isPaginated) {
         if (innerData.branches && Array.isArray(innerData.branches)) return innerData.branches;
         if (innerData.departments && Array.isArray(innerData.departments)) return innerData.departments;
-        if (innerData.counters && Array.isArray(innerData.counters)) return innerData.counters;
         if (innerData.users && Array.isArray(innerData.users)) return innerData.users;
         if (innerData.tokens && Array.isArray(innerData.tokens)) return innerData.tokens;
       }
@@ -124,6 +123,11 @@ export const authAPI = {
   updateProfile: (userData) => api.put('/auth/profile', userData),
 };
 
+// ── Public API ────────────────────────────────────────────────────────────────
+export const publicAPI = {
+  getBranches: () => api.get('/public/branches'),
+};
+
 // ── Dashboard API (user side) ─────────────────────────────────────────────────
 export const dashboardAPI = {
   // Active tokens: status=WAITING or SERVING (uppercase to match backend enum)
@@ -155,7 +159,7 @@ export const tokenAPI = {
 export const queueAPI = {
   getQueueStatus: (branchId, departmentId) =>
     api.get(`/queue/${branchId}${departmentId ? `/${departmentId}` : ''}`),
-  callNextToken: (counterId) => api.post('/queue/call-next', { counterId }),
+  callNextToken: () => api.post('/queue/call-next'),
   skipToken: (tokenId, reason) => api.put(`/queue/${tokenId}/skip`, { reason }),
   holdToken: (tokenId, reason) => api.put(`/queue/${tokenId}/hold`, { reason }),
   completeToken: (tokenId, serviceTime) =>
@@ -186,15 +190,7 @@ export const departmentAPI = {
   deleteDepartment: (departmentId) => api.delete(`/departments/${departmentId}`),
 };
 
-// ── Counter API ───────────────────────────────────────────────────────────────
-export const counterAPI = {
-  getCounters: (branchId) =>
-    api.get('/counters', { params: branchId ? { branchId } : {} }),
-  getCounter: (counterId) => api.get(`/counters/${counterId}`),
-  createCounter: (counterData) => api.post('/counters', counterData),
-  updateCounter: (counterId, counterData) => api.put(`/counters/${counterId}`, counterData),
-  deleteCounter: (counterId) => api.delete(`/counters/${counterId}`),
-};
+
 
 // ── User API ──────────────────────────────────────────────────────────────────
 export const userAPI = {
@@ -237,6 +233,7 @@ export const staffAPI = {
   recallToken:   (tokenId) => api.post(`/staff/queue/${tokenId}/recall`),
   markMissed:    (tokenId) => api.post(`/staff/queue/${tokenId}/missed`),
   checkIn:       (tokenId) => api.post(`/staff/queue/${tokenId}/check-in`),
+  getTeam:       () => api.get('/staff/team'),
 };
 
 export default api;

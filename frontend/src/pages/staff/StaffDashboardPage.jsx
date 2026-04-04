@@ -9,26 +9,31 @@ const StaffDashboardPage = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [team, setTeam] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  const loadStats = async () => {
+  const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const data = await staffAPI.getTodayStats();
-      setStats(data);
+      const [statsData, teamData] = await Promise.all([
+        staffAPI.getTodayStats(),
+        staffAPI.getTeam()
+      ]);
+      setStats(statsData);
+      setTeam(teamData || []);
       setError('');
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      console.error('Failed to load dashboard data:', err);
       setError('Failed to load dashboard statistics.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -119,9 +124,11 @@ const StaffDashboardPage = () => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Stats Distribution */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="border-b px-6 py-4 bg-gray-50">
+            <div className="border-b px-6 py-4 bg-gray-50 flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-gray-500" />
               <h3 className="text-lg font-bold text-gray-900">Current Distribution</h3>
             </div>
             <div className="p-6 space-y-4">
@@ -144,25 +151,61 @@ const StaffDashboardPage = () => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-sm p-8 text-white flex flex-col justify-center relative overflow-hidden">
+          {/* Quick Actions */}
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-sm p-8 text-white flex flex-col justify-center relative overflow-hidden lg:col-span-1">
             <div className="absolute top-0 right-0 opacity-10">
                <Users className="w-48 h-48 -mr-10 -mt-10" />
             </div>
-            <h3 className="text-2xl font-bold mb-2">Manage Queue Safely</h3>
+            <h3 className="text-2xl font-bold mb-2 text-white">Manage Queue</h3>
             <p className="text-blue-100 mb-6 max-w-sm">View all tokens, or add a walk-in visitor directly to the live queue.</p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3">
               <Link to="/staff/queue" className="inline-flex items-center gap-2 bg-white text-blue-700 px-5 py-2.5 rounded-lg font-bold shadow-md hover:bg-gray-50 transition-colors">
                 <ClipboardList className="w-5 h-5" />
                 Today's Queue
-              </Link>
-              <Link to="/staff/queue?dateRange=30days" className="inline-flex items-center gap-2 bg-blue-100/20 hover:bg-blue-100/30 text-white border border-blue-400/30 px-5 py-2.5 rounded-lg font-bold shadow-md transition-colors">
-                <RotateCcw className="w-5 h-5" />
-                View History
               </Link>
               <Link to="/staff/walk-in" className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-5 py-2.5 rounded-lg font-bold shadow-md transition-colors">
                 <UserPlus className="w-5 h-5" />
                 Add Walk-in
               </Link>
+              <Link to="/staff/queue?dateRange=30days" className="inline-flex items-center gap-2 bg-blue-100/10 hover:bg-blue-100/20 text-white border border-blue-400/30 px-5 py-2 rounded-lg font-semibold text-sm transition-colors justify-center">
+                <RotateCcw className="w-4 h-4" />
+                Historical History
+              </Link>
+            </div>
+          </div>
+
+          {/* Team Members */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="border-b px-6 py-4 bg-gray-50 flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-500" />
+              <h3 className="text-lg font-bold text-gray-900">Branch Team</h3>
+            </div>
+            <div className="p-0 max-h-[290px] overflow-y-auto">
+              <ul className="divide-y divide-gray-100">
+                {team.length === 0 ? (
+                  <li className="px-6 py-8 text-center text-gray-400 italic">No other staff members found.</li>
+                ) : (
+                  team.map(member => (
+                    <li key={member._id || member.email} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                          {member.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">{member.name}</p>
+                          <p className="text-xs text-gray-500 font-medium lowercase italic">{member.email}</p>
+                        </div>
+                        {member.email === user?.email && (
+                          <span className="ml-auto text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded font-black uppercase">You</span>
+                        )}
+                      </div>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+            <div className="px-6 py-3 bg-gray-50 border-t text-xs text-gray-500 text-center">
+              Team members assigned to your hospital
             </div>
           </div>
         </div>
