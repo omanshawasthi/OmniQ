@@ -36,10 +36,6 @@ class SocketHandler {
         if (socket.user.assignedBranch) {
           socket.join(ROOM_TYPES.BRANCH + socket.user.assignedBranch)
         }
-        
-        if (socket.user.assignedCounter) {
-          socket.join(ROOM_TYPES.COUNTER + socket.user.assignedCounter)
-        }
       }
 
       // Handle room joining
@@ -128,11 +124,7 @@ class SocketHandler {
 
       switch (action) {
         case 'call_next':
-          if (!counterId) {
-            socket.emit('error', { message: 'Counter ID is required for call_next' })
-            return
-          }
-          result = await QueueService.callNextToken(counterId, performedBy)
+          result = await QueueService.callNextToken(performedBy)
           break
 
         case 'skip':
@@ -183,7 +175,6 @@ class SocketHandler {
         .populate('userId', 'name email')
         .populate('branchId', 'name')
         .populate('departmentId', 'name')
-        .populate('counterId', 'name')
 
       // Prepare event data
       const eventData = {
@@ -204,11 +195,6 @@ class SocketHandler {
       rooms.push(ROOM_TYPES.BRANCH + token.branchId)
       rooms.push(ROOM_TYPES.DEPARTMENT + token.departmentId)
 
-      // Emit to counter room if assigned
-      if (token.counterId) {
-        rooms.push(ROOM_TYPES.COUNTER + token.counterId)
-      }
-
       // Emit to user room if token has user
       if (token.userId) {
         rooms.push(ROOM_TYPES.USER + token.userId)
@@ -217,9 +203,8 @@ class SocketHandler {
       // Emit to public display room
       rooms.push(ROOM_TYPES.PUBLIC_DISPLAY + token.branchId)
 
-      // Emit to staff and operators
+      // Emit to staff
       rooms.push('staff')
-      rooms.push('operator')
 
       // Emit the appropriate event
       switch (action) {
@@ -311,15 +296,9 @@ class SocketHandler {
       return user.assignedBranch?.toString() === branchId || user.role === 'staff'
     }
 
-    // Department rooms (staff and operators can access their assigned departments)
+    // Department rooms (staff can access their assigned departments)
     if (room.startsWith(ROOM_TYPES.DEPARTMENT)) {
-      return user.role === 'staff' || user.role === 'operator'
-    }
-
-    // Counter rooms
-    if (room.startsWith(ROOM_TYPES.COUNTER)) {
-      const counterId = room.replace(ROOM_TYPES.COUNTER, '')
-      return user.assignedCounter?.toString() === counterId || user.role === 'staff'
+      return user.role === 'staff'
     }
 
     // Public display rooms (anyone can access)
@@ -328,7 +307,7 @@ class SocketHandler {
     }
 
     // Role-based rooms
-    if (['user', 'staff', 'operator', 'admin'].includes(room)) {
+    if (['user', 'staff', 'admin'].includes(room)) {
       return user.role === room
     }
 
@@ -343,12 +322,7 @@ class SocketHandler {
 
     // Staff permissions
     if (user.role === 'staff') {
-      return ['call_next', 'skip', 'hold', 'recall', 'check_in'].includes(action)
-    }
-
-    // Operator permissions
-    if (user.role === 'operator') {
-      return ['complete', 'hold', 'check_in'].includes(action)
+      return ['call_next', 'skip', 'hold', 'recall', 'check_in', 'complete'].includes(action)
     }
 
     // Users cannot perform queue actions
@@ -381,9 +355,7 @@ class SocketHandler {
     this.io.to(ROOM_TYPES.DEPARTMENT + departmentId).emit(event, data)
   }
 
-  emitToCounter(counterId, event, data) {
-    this.io.to(ROOM_TYPES.COUNTER + counterId).emit(event, data)
-  }
+
 
   emitToRole(role, event, data) {
     this.io.to(role).emit(event, data)

@@ -2,15 +2,15 @@ import Token from '../models/Token.js'
 import User from '../models/User.js'
 import Branch from '../models/Branch.js'
 import Department from '../models/Department.js'
-import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import { NotificationService } from './notificationService.js'
-import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, COUNTER_STATUS, QUEUE_ACTIONS } from '../utils/constants.js'
+import { BOOKING_TYPE, TOKEN_PRIORITY, TOKEN_STATUS, QUEUE_ACTIONS } from '../utils/constants.js'
 import QRCode from 'qrcode'
 import mongoose from 'mongoose'
 import AppError from '../utils/AppError.js'
 import { getStartOfToday, getDaysAgo } from '../utils/dateUtils.js'
 import { QueueLifecycleService } from './queueLifecycleService.js'
+import { emitToBranch, emitToUser } from '../config/socket.js'
 
 export class TokenService {
   // Generate unique token number with concurrency safety
@@ -132,6 +132,13 @@ export class TokenService {
     // Send confirmation notification
     await NotificationService.sendBookingConfirmation({ _id: userId }, token)
 
+    // Notify branch staff
+    emitToBranch(branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'created',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -227,6 +234,13 @@ export class TokenService {
       { path: 'departmentId', select: 'name description' }
     ])
 
+    // Notify branch staff
+    emitToBranch(branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'created',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -303,7 +317,6 @@ export class TokenService {
     const tokens = await Token.find(query)
       .populate('branchId', 'name address phone')
       .populate('departmentId', 'name description')
-      .populate('counterId', 'name')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -327,7 +340,6 @@ export class TokenService {
       .populate('userId', 'name email phone')
       .populate('branchId', 'name address phone operatingHours')
       .populate('departmentId', 'name description averageServiceTime')
-      .populate('counterId', 'name')
 
     if (!token) {
       throw new AppError('Token not found', 404)
@@ -424,7 +436,6 @@ export class TokenService {
       .populate('userId', 'name email phone')
       .populate('branchId', 'name address')
       .populate('departmentId', 'name')
-      .populate('counterId', 'name')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -529,21 +540,25 @@ export class TokenService {
       peopleAhead = 0
     }
 
-    const activeCounter = await Counter.findOne({
+    // Get currently serving tokens for this department
+    const servingTokens = await Token.find({
       branchId,
       departmentId,
-      status: COUNTER_STATUS.ACTIVE,
-      currentToken: { $ne: null }
-    }).populate('currentToken', 'tokenNumber')
+      status: TOKEN_STATUS.SERVING
+    }).sort({ startedServiceAt: -1 })
 
-    const currentlyServing = activeCounter ? activeCounter.currentToken : null
-    const counters = await Counter.find({ branchId, departmentId })
-    const isQueuePaused = counters.length > 0 && counters.every(c => c.status === COUNTER_STATUS.PAUSED)
-    const isQueueClosed = counters.length === 0 || counters.every(c => c.status === COUNTER_STATUS.OFFLINE)
+    const currentlyServing = servingTokens.length > 0 ? servingTokens[0] : null
+    
+    // Manual check for queue status since counters are gone
+    // We can assume if there are staff assigned, it's active
+    const assignedStaffCount = await User.countDocuments({
+      assignedBranch: branchId,
+      role: 'staff',
+      isActive: true
+    })
 
-    let queueStatus = 'active'
-    if (isQueuePaused) queueStatus = 'paused'
-    else if (isQueueClosed) queueStatus = 'closed'
+    let queueStatus = assignedStaffCount > 0 ? 'active' : 'inactive'
+    if (servingTokens.length > 0) queueStatus = 'active'
 
     return {
       token,

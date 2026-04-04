@@ -13,11 +13,11 @@
 
 import mongoose from 'mongoose'
 import Token from '../models/Token.js'
-import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import AppError from '../utils/AppError.js'
 import { TOKEN_STATUS, QUEUE_ACTIONS, TOKEN_PRIORITY, ACTIVE_QUEUE_STATES } from '../utils/constants.js'
 import { getStartOfToday } from '../utils/dateUtils.js'
+import { emitToBranch, emitToPublicDisplay } from '../config/socket.js'
 
 // ─── Transition Map (source of truth for valid moves) ────────────────────────
 const TRANSITIONS = {
@@ -66,9 +66,9 @@ async function findTokenOrThrow(tokenId) {
  * Create a QueueLog entry — non-blocking, but errors are caught so they
  * never interrupt the main action.
  */
-async function log(tokenId, action, performedBy, counterId, metadata = {}) {
+async function log(tokenId, action, performedBy, metadata = {}) {
   try {
-    await QueueLog.logAction({ tokenId, action, performedBy, counterId: counterId || null, metadata })
+    await QueueLog.logAction({ tokenId, action, performedBy, metadata })
   } catch (err) {
     console.error('[QueueLog] Failed to write log:', err.message)
   }
@@ -162,7 +162,7 @@ export class QueueLifecycleService {
 
       // Log them for audit trail
       for (const t of oldTokens) {
-        await log(t._id, QUEUE_ACTIONS.EXPIRED, null, null, {
+        await log(t._id, QUEUE_ACTIONS.EXPIRED, null, {
           reason: 'Automatically expired stale token from previous day',
           previousStatus: t.status
         })
@@ -185,10 +185,10 @@ export class QueueLifecycleService {
    * simultaneous "call next" requests claim different tokens.
    */
   static async callNext(performedBy, options = {}) {
-    const { branchId, departmentId, counterId } = options
+    const { branchId, departmentId } = options
 
-    if (!branchId && !departmentId && !counterId) {
-      throw new AppError('At least one of branchId, departmentId, or counterId is required.', 400)
+    if (!branchId && !departmentId) {
+      throw new AppError('At least one of branchId or departmentId is required.', 400)
     }
 
     // Clean up stale tokens before checking the queue depth
@@ -198,15 +198,6 @@ export class QueueLifecycleService {
     const matchQuery = { status: TOKEN_STATUS.WAITING }
     if (branchId)     matchQuery.branchId     = branchId
     if (departmentId) matchQuery.departmentId = departmentId
-
-    // If a counter is given, resolve its branch/dept and only pick unassigned or matching tokens
-    let resolvedCounter = null
-    if (counterId) {
-      resolvedCounter = await Counter.findById(counterId)
-      if (!resolvedCounter) throw new AppError('Counter not found.', 404)
-      matchQuery.branchId     = resolvedCounter.branchId
-      matchQuery.departmentId = resolvedCounter.departmentId
-    }
 
     // Fetch candidates (sorted), then atomically claim the first one
     const priorityOrder = { urgent: 0, high: 1, normal: 2 }
@@ -231,8 +222,7 @@ export class QueueLifecycleService {
         {
           $set: {
             status: TOKEN_STATUS.SERVING,
-            startedServiceAt: now,
-            ...(counterId && { counterId })
+            startedServiceAt: now
           }
         },
         { new: true }
@@ -245,24 +235,19 @@ export class QueueLifecycleService {
       throw new AppError('No waiting tokens in queue.', 404)
     }
 
-    // Update counter if provided
-    if (resolvedCounter) {
-      // Complete current token serving at this counter if any
-      if (resolvedCounter.currentToken) {
-        await this.completeToken(resolvedCounter.currentToken.toString(), performedBy)
-      }
-      await Counter.findByIdAndUpdate(counterId, {
-        currentToken: claimed._id,
-        lastActivity: new Date()
-      })
-    }
-
-    await log(claimed._id, QUEUE_ACTIONS.CALLED, performedBy, counterId, {
+    await log(claimed._id, QUEUE_ACTIONS.CALLED, performedBy, {
       previousStatus: TOKEN_STATUS.WAITING,
       newStatus: TOKEN_STATUS.SERVING
     })
 
     await refreshWaitTimes(claimed.branchId, claimed.departmentId)
+
+    // Notify all staff in the branch
+    emitToBranch(claimed.branchId, 'queue_updated', {
+      tokenId: claimed._id,
+      action: 'called',
+      tokenNumber: claimed.tokenNumber
+    })
 
     return claimed
   }
@@ -279,16 +264,23 @@ export class QueueLifecycleService {
     const prevStatus = token.status
     token.status          = TOKEN_STATUS.SERVING
     token.startedServiceAt = new Date()
-    if (options.counterId) token.counterId = options.counterId
 
     await token.save()
 
-    await log(token._id, QUEUE_ACTIONS.SERVING, performedBy, token.counterId, {
+    await log(token._id, QUEUE_ACTIONS.SERVING, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.SERVING
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'serving',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -307,22 +299,21 @@ export class QueueLifecycleService {
     }
     await token.save()
 
-    // Clear counter
-    if (token.counterId) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: now,
-        $inc: { tokensServedToday: 1 }
-      })
-    }
-
-    await log(token._id, QUEUE_ACTIONS.COMPLETED, performedBy, token.counterId, {
+    await log(token._id, QUEUE_ACTIONS.COMPLETED, performedBy, {
       previousStatus: TOKEN_STATUS.SERVING,
       newStatus: TOKEN_STATUS.COMPLETED,
       duration: token.actualServiceTime
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'completed',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -339,20 +330,21 @@ export class QueueLifecycleService {
     token.status      = TOKEN_STATUS.SKIPPED
     await token.save()
 
-    if (token.counterId && prevStatus === TOKEN_STATUS.SERVING) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: new Date()
-      })
-    }
-
-    await log(token._id, QUEUE_ACTIONS.SKIPPED, performedBy, token.counterId, {
+    await log(token._id, QUEUE_ACTIONS.SKIPPED, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.SKIPPED,
       reason
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'skipped',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -369,20 +361,21 @@ export class QueueLifecycleService {
     token.status     = TOKEN_STATUS.HELD
     await token.save()
 
-    if (token.counterId) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: new Date()
-      })
-    }
-
-    await log(token._id, QUEUE_ACTIONS.HELD, performedBy, token.counterId, {
+    await log(token._id, QUEUE_ACTIONS.HELD, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.HELD,
       reason
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'held',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -399,12 +392,20 @@ export class QueueLifecycleService {
     token.status     = TOKEN_STATUS.WAITING
     await token.save()
 
-    await log(token._id, QUEUE_ACTIONS.RECALLED, performedBy, null, {
+    await log(token._id, QUEUE_ACTIONS.RECALLED, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.WAITING
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'recalled',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -422,19 +423,20 @@ export class QueueLifecycleService {
     token.noShowCount   = (token.noShowCount || 0) + 1
     await token.save()
 
-    if (token.counterId && prevStatus === TOKEN_STATUS.SERVING) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: new Date()
-      })
-    }
-
-    await log(token._id, QUEUE_ACTIONS.MISSED, performedBy, token.counterId, {
+    await log(token._id, QUEUE_ACTIONS.MISSED, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.MISSED
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'missed',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 
@@ -466,13 +468,21 @@ export class QueueLifecycleService {
     token.checkedInAt = new Date()
     await token.save()
 
-    await log(token._id, QUEUE_ACTIONS.CHECK_IN, performedBy, null, {
+    await log(token._id, QUEUE_ACTIONS.CHECK_IN, performedBy, {
       previousStatus: prevStatus,
       newStatus: TOKEN_STATUS.CHECKED_IN,
       checkedInAt: token.checkedInAt
     })
 
     await refreshWaitTimes(token.branchId, token.departmentId)
+
+    // Notify branch staff
+    emitToBranch(token.branchId, 'queue_updated', {
+      tokenId: token._id,
+      action: 'checked_in',
+      tokenNumber: token.tokenNumber
+    })
+
     return token
   }
 }

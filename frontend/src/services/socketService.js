@@ -17,7 +17,7 @@ class SocketService {
       return
     }
 
-    this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', {
+    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001', {
       auth: {
         token
       },
@@ -124,6 +124,34 @@ class SocketService {
   leaveRoom(room) {
     if (this.socket && this.connected) {
       this.socket.emit('leave_room', { room })
+    }
+  }
+
+  joinBranch(branchId) {
+    this.joinRoom('BRANCH_' + branchId)
+  }
+
+  leaveBranch(branchId) {
+    this.leaveRoom('BRANCH_' + branchId)
+  }
+
+  joinDepartment(departmentId) {
+    this.joinRoom('DEPARTMENT_' + departmentId)
+  }
+
+  leaveDepartment(departmentId) {
+    this.leaveRoom('DEPARTMENT_' + departmentId)
+  }
+
+  on(event, callback) {
+    if (this.socket) {
+      this.socket.on(event, callback)
+    }
+  }
+
+  off(event, callback) {
+    if (this.socket) {
+      this.socket.off(event, callback)
     }
   }
 

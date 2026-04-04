@@ -10,15 +10,14 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import connectDB from './config/database.js';
-import { initializeSocket } from './sockets/socketHandler.js';
+import { connectDB } from './src/config/database.js';
+import { initializeSocket } from './src/config/socket.js';
 import authRoutes from './routes/auth.js';
 import tokenRoutes from './routes/tokens.js';
 import queueRoutes from './routes/queue.js';
 import userRoutes from './routes/users.js';
 import branchRoutes from './routes/branches.js';
 import departmentRoutes from './routes/departments.js';
-import counterRoutes from './routes/counters.js';
 import adminRoutes from './routes/admin.js';
 import publicRoutes from './routes/public.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -60,7 +59,6 @@ app.use('/api/queue', queueRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/departments', departmentRoutes);
-app.use('/api/counters', counterRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/staff', staffRoutes);
@@ -90,7 +88,7 @@ connectDB().then(() => {
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔗 Socket.IO enabled`);
+    // Socket is already initialized via initializeSocket(io)
   });
 }).catch((error) => {
   console.error('❌ Failed to start server:', error);
