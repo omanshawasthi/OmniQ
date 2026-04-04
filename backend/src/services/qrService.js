@@ -127,44 +127,7 @@ export class QRService {
     }
   }
 
-  // Generate QR code for counter
-  static async generateCounterQR(counterId) {
-    try {
-      const qrData = {
-        type: 'counter',
-        id: counterId.toString(),
-        createdAt: new Date().toISOString(),
-        checksum: this.generateCounterChecksum(counterId)
-      }
 
-      const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData), {
-        errorCorrectionLevel: 'M',
-        type: 'image/png',
-        quality: 0.92,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        width: 200
-      })
-
-      return {
-        qrCode: qrCodeDataURL,
-        counterId,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      }
-    } catch (error) {
-      console.error('Error generating counter QR code:', error)
-      throw new Error('Failed to generate counter QR code')
-    }
-  }
-
-  // Generate checksum for counter QR
-  static generateCounterChecksum(counterId) {
-    const data = `counter_${counterId}_${new Date().toISOString().split('T')[0]}`
-    return crypto.createHash('sha256').update(data).digest('hex').substring(0, 8)
-  }
 
   // Check in token using QR code
   static async checkInToken(qrData, userId = null) {
@@ -269,7 +232,7 @@ export class QRService {
       }
 
       // Validate type
-      const validTypes = ['token', 'counter', 'user', 'branch_display']
+      const validTypes = ['token', 'user', 'branch_display']
       if (!validTypes.includes(parsedData.type)) {
         return {
           valid: false,

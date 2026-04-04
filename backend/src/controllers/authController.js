@@ -4,7 +4,7 @@ import { asyncHandler } from '../middleware/errorHandler.js'
 
 // Register new user
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, phone, password, role = 'user' } = req.body
+  const { name, email, phone, password, role = 'user', assignedBranch } = req.body
 
   // Check if user already exists
   const query = { email }
@@ -29,23 +29,30 @@ export const register = asyncHandler(async (req, res) => {
     email,
     phone: phone && phone.trim() !== '' ? phone.trim() : null,
     password,
-    role: role.toLowerCase()
+    role: role.toLowerCase(),
+    isActive: role.toLowerCase() === 'staff' ? false : true,
+    assignedBranch: role.toLowerCase() === 'staff' ? assignedBranch : null
   })
 
   // Set initial login and save once
   user.lastLogin = new Date()
   await user.save()
 
-  // Generate tokens
-  const { accessToken, refreshToken } = generateTokens(user._id, user.role)
+  // Generate tokens only if user is active
+  let tokens = { accessToken: null, refreshToken: null }
+  if (user.isActive) {
+    tokens = generateTokens(user._id, user.role)
+  }
 
   res.status(201).json({
     success: true,
-    message: 'User registered successfully',
+    message: user.isActive 
+      ? 'User registered successfully' 
+      : 'Staff registration successful. Your account is pending administrator approval.',
     data: {
       user: user.toSafeObject(),
-      accessToken,
-      refreshToken
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     }
   })
 })
@@ -57,10 +64,17 @@ export const login = asyncHandler(async (req, res) => {
   // Find user with password
   const user = await User.findOne({ email }).select('+password')
 
-  if (!user || !user.isActive) {
+  if (!user) {
     return res.status(401).json({
       success: false,
       message: 'Invalid credentials'
+    })
+  }
+
+  if (!user.isActive) {
+    return res.status(401).json({
+      success: false,
+      message: user.role === 'staff' ? 'Account under verification by admin' : 'Account disabled'
     })
   }
 

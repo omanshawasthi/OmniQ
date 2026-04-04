@@ -122,16 +122,7 @@ export const apiClient = {
     delete: (id) => api.delete(`/departments/${id}`),
   },
 
-  // Counters
-  counters: {
-    getAll: (branchId, departmentId) => api.get('/counters', { params: { branchId, departmentId } }),
-    getById: (id) => api.get(`/counters/${id}`),
-    create: (counterData) => api.post('/counters', counterData),
-    update: (id, counterData) => api.put(`/counters/${id}`, counterData),
-    delete: (id) => api.delete(`/counters/${id}`),
-    updateStatus: (id, status) => api.put(`/counters/${id}/status`, { status }),
-    assignOperator: (id, userId) => api.post(`/counters/${id}/assign`, { userId }),
-  },
+
 
   // Users
   users: {
