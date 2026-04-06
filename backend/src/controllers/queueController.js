@@ -3,13 +3,9 @@ import { asyncHandler } from '../middleware/errorHandler.js'
 
 // Get today's queue
 export const getTodayQueue = asyncHandler(async (req, res) => {
-  const { branchId, departmentId, counterId, status } = req.query;
-  
-  // The service expects an object with these filters
   const todayQueue = await QueueService.getTodayQueue({
     branchId: branchId || req.user?.branchId,
     departmentId,
-    counterId,
     status
   });
 
@@ -33,9 +29,7 @@ export const getQueueStatus = asyncHandler(async (req, res) => {
 
 // Call next token
 export const callNextToken = asyncHandler(async (req, res) => {
-  const { counterId } = req.body
-  
-  const token = await QueueService.callNextToken(counterId, req.user._id)
+  const token = await QueueService.callNextToken(req.user._id)
 
   res.status(200).json({
     success: true,

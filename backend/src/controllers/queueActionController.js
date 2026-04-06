@@ -3,11 +3,10 @@ import { QueueLifecycleService } from '../services/queueLifecycleService.js'
 // ─── Call Next ────────────────────────────────────────────────────────────────
 export const callNext = async (req, res, next) => {
   try {
-    const { branchId, departmentId, counterId } = req.body
+    const { branchId, departmentId } = req.body
     const token = await QueueLifecycleService.callNext(req.user._id, {
       branchId: branchId || req.user.branchId,
-      departmentId,
-      counterId
+      departmentId
     })
     res.status(200).json({ success: true, data: token })
   } catch (err) { next(err) }
@@ -18,8 +17,7 @@ export const serveToken = async (req, res, next) => {
   try {
     const token = await QueueLifecycleService.serveToken(
       req.params.tokenId,
-      req.user._id,
-      { counterId: req.body.counterId }
+      req.user._id
     )
     res.status(200).json({ success: true, data: token })
   } catch (err) { next(err) }

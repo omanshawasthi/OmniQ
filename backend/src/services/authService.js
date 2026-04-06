@@ -5,7 +5,7 @@ import { sendEmail, emailTemplates } from '../config/nodemailer.js'
 export class AuthService {
   // Create user with role assignment
   static async createUser(userData, createdBy = null) {
-    const { name, email, phone, password, role = 'user', assignedBranch, assignedCounter } = userData
+    const { name, email, phone, password, role = 'user', assignedBranch } = userData
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
@@ -16,25 +16,20 @@ export class AuthService {
       throw new Error(existingUser.email === email ? 'Email already registered' : 'Phone number already registered')
     }
 
-    // Validate role assignments
     if (role === 'staff' && !assignedBranch) {
       throw new Error('Staff users must be assigned to a branch')
     }
 
-    if (role === 'operator' && (!assignedBranch || !assignedCounter)) {
-      throw new Error('Operator users must be assigned to both branch and counter')
-    }
-
-    // Create new user
     const user = new User({
       name,
       email,
       phone,
       password,
       role,
-      assignedBranch: role === 'staff' || role === 'operator' ? assignedBranch : null,
-      assignedCounter: role === 'operator' ? assignedCounter : null
+      assignedBranch: (role === 'staff') ? assignedBranch : null
     })
+
+    await user.save()
 
     await user.save()
 
@@ -57,7 +52,7 @@ export class AuthService {
 
   // Update user role and assignments
   static async updateUserRole(userId, roleData, updatedBy) {
-    const { role, assignedBranch, assignedCounter } = roleData
+    const { role, assignedBranch } = roleData
 
     const user = await User.findById(userId)
     if (!user) {
@@ -69,14 +64,9 @@ export class AuthService {
       throw new Error('Staff users must be assigned to a branch')
     }
 
-    if (role === 'operator' && (!assignedBranch || !assignedCounter)) {
-      throw new Error('Operator users must be assigned to both branch and counter')
-    }
-
-    // Update user
+    // Update user record
     user.role = role
-    user.assignedBranch = (role === 'staff' || role === 'operator') ? assignedBranch : null
-    user.assignedCounter = role === 'operator' ? assignedCounter : null
+    user.assignedBranch = (role === 'staff') ? assignedBranch : null
 
     await user.save()
 
@@ -119,7 +109,6 @@ export class AuthService {
 
     const users = await User.find(query)
       .populate('assignedBranch', 'name address')
-      .populate('assignedCounter', 'name departmentId')
       .sort({ createdAt: -1 })
 
     return users.map(user => user.toSafeObject())

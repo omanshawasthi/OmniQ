@@ -25,11 +25,6 @@ export class RoomManager {
       rooms.push(ROOM_TYPES.BRANCH + user.assignedBranch)
     }
 
-    // Counter room (if assigned)
-    if (user.assignedCounter) {
-      rooms.push(ROOM_TYPES.COUNTER + user.assignedCounter)
-    }
-
     return rooms
   }
 
@@ -94,7 +89,6 @@ export class RoomManager {
       userRooms: 0,
       branchRooms: 0,
       departmentRooms: 0,
-      counterRooms: 0,
       publicDisplayRooms: 0,
       roleRooms: 0,
       roomDetails: []
@@ -122,9 +116,6 @@ export class RoomManager {
         case 'department':
           stats.departmentRooms++
           break
-        case 'counter':
-          stats.counterRooms++
-          break
         case 'public_display':
           stats.publicDisplayRooms++
           break
@@ -142,9 +133,8 @@ export class RoomManager {
     if (room.startsWith(ROOM_TYPES.USER)) return 'user'
     if (room.startsWith(ROOM_TYPES.BRANCH)) return 'branch'
     if (room.startsWith(ROOM_TYPES.DEPARTMENT)) return 'department'
-    if (room.startsWith(ROOM_TYPES.COUNTER)) return 'counter'
     if (room.startsWith(ROOM_TYPES.PUBLIC_DISPLAY)) return 'public_display'
-    if (['user', 'staff', 'operator', 'admin'].includes(room)) return 'role'
+    if (['user', 'staff', 'admin'].includes(room)) return 'role'
     return 'unknown'
   }
 
@@ -200,16 +190,10 @@ export class RoomManager {
     return await this.broadcastToRoom(departmentRoom, 'token_status_changed', tokenUpdate)
   }
 
-  // Send public display update
+    // Send public display update
   async sendPublicDisplayUpdate(branchId, displayData) {
     const publicRoom = ROOM_TYPES.PUBLIC_DISPLAY + branchId
     return await this.broadcastToRoom(publicRoom, 'public_display_update', displayData)
-  }
-
-  // Send counter status update
-  async sendCounterStatusUpdate(counterId, statusData) {
-    const counterRoom = ROOM_TYPES.COUNTER + counterId
-    return await this.broadcastToRoom(counterRoom, 'counter_status_changed', statusData)
   }
 }
 

@@ -204,7 +204,6 @@ const EnhancedPublicDisplay = () => {
               >
                 <div className="mb-6">
                   <Monitor className="h-16 w-16 mx-auto mb-4 text-white opacity-80" />
-                  <p className="text-xl opacity-90 mb-2">Counter {token.counterId?.name || index + 1}</p>
                 </div>
                 <div className="text-6xl font-bold mb-3">{token.tokenNumber}</div>
                 <p className="text-lg opacity-90">
@@ -224,8 +223,7 @@ const EnhancedPublicDisplay = () => {
                 key={`empty-${index}`}
                 className="bg-white bg-opacity-5 backdrop-blur-sm rounded-2xl p-8 text-center border border-white border-opacity-10"
               >
-                <Monitor className="h-16 w-16 mx-auto mb-4 text-white opacity-30" />
-                <p className="text-xl opacity-50 mb-2">Counter {queueStatus?.serving?.length + index + 1}</p>
+                <p className="text-xl opacity-50 mb-2">Available</p>
                 <div className="text-4xl font-bold mb-3 opacity-30">---</div>
                 <p className="text-lg opacity-30">Available</p>
               </div>
@@ -266,7 +264,7 @@ const EnhancedPublicDisplay = () => {
         </div>
 
         {/* Queue Statistics */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 gap-8">
           <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 text-center border border-white border-opacity-20">
             <div className="flex items-center justify-center mb-4">
               <Users className="h-12 w-12 text-white opacity-80" />
@@ -286,16 +284,8 @@ const EnhancedPublicDisplay = () => {
             <h3 className="text-xl font-semibold mb-1">Avg Wait Time</h3>
             <p className="text-sm opacity-90">Minutes</p>
           </div>
-
-          <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 text-center border border-white border-opacity-20">
-            <div className="flex items-center justify-center mb-4">
-              <TrendingUp className="h-12 w-12 text-white opacity-80" />
-            </div>
-            <div className="text-4xl font-bold mb-2">{queueStatus?.statistics?.totalServing || 0}</div>
-            <h3 className="text-xl font-semibold mb-1">Active Counters</h3>
-            <p className="text-sm opacity-90">Out of {queueStatus?.counters?.length || 0}</p>
-          </div>
         </div>
+
       </main>
 
       {/* Footer */}

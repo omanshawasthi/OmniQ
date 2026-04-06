@@ -22,7 +22,6 @@ import AdminDashboard from './pages/AdminDashboard'
 import UsersPage from './pages/admin/UsersPage'
 import BranchesPage from './pages/admin/BranchesPage'
 import DepartmentsPage from './pages/admin/DepartmentsPage'
-import CountersPage from './pages/admin/CountersPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import QueueManagementPage from './pages/admin/QueueManagementPage'
 import AnalyticsDashboardPage from './pages/admin/AnalyticsDashboardPage'
@@ -33,10 +32,6 @@ import StaffQueuePage from './pages/staff/StaffQueuePage'
 import CreateWalkInTokenPage from './pages/staff/CreateWalkInTokenPage'
 import QueueControlPage from './pages/staff/QueueControlPage'
 
-// Operator pages
-import OperatorDashboard from './pages/OperatorDashboard'
-import AssignedQueuePage from './pages/operator/AssignedQueuePage'
-import ServeTokenPage from './pages/operator/ServeTokenPage'
 import PublicQueueDisplayPage from './pages/public/PublicQueueDisplayPage'
 
 // Guest-only wrapper: redirect authenticated users to their dashboard
@@ -47,7 +42,6 @@ const GuestRoute = ({ children }) => {
     const roleRoutes = {
       ADMIN: '/admin',
       STAFF: '/staff',
-      OPERATOR: '/operator',
       USER: '/dashboard',
     }
     const normalizedRole = (user.role || '').toUpperCase()
@@ -135,7 +129,7 @@ function App() {
         <Route
           path="/live-queue/:id"
           element={
-            <ProtectedRoute allowedRoles={['USER', 'STAFF', 'ADMIN', 'OPERATOR']}>
+            <ProtectedRoute allowedRoles={['USER', 'STAFF', 'ADMIN']}>
               <LiveQueuePage />
             </ProtectedRoute>
           }
@@ -143,7 +137,7 @@ function App() {
         <Route
           path="/token/:id"
           element={
-            <ProtectedRoute allowedRoles={['USER', 'STAFF', 'ADMIN', 'OPERATOR']}>
+            <ProtectedRoute allowedRoles={['USER', 'STAFF', 'ADMIN']}>
               <TokenDetailsPage />
             </ProtectedRoute>
           }
@@ -154,8 +148,7 @@ function App() {
         <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['ADMIN']}><AnalyticsDashboardPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UsersPage /></ProtectedRoute>} />
         <Route path="/admin/branches" element={<ProtectedRoute allowedRoles={['ADMIN']}><BranchesPage /></ProtectedRoute>} />
-        <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['ADMIN']}><DepartmentsPage /></ProtectedRoute>} />
-        <Route path="/admin/counters" element={<ProtectedRoute allowedRoles={['ADMIN']}><CountersPage /></ProtectedRoute>} />
+        <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}><DepartmentsPage /></ProtectedRoute>} />
         <Route path="/admin/queue" element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}><QueueManagementPage /></ProtectedRoute>} />
         <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['ADMIN']}><SettingsPage /></ProtectedRoute>} />
 
@@ -166,10 +159,7 @@ function App() {
         <Route path="/staff/queue-control" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><QueueControlPage /></ProtectedRoute>} />
         <Route path="/staff/search" element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}><StaffQueuePage /></ProtectedRoute>} />
 
-        {/* Operator Routes */}
-        <Route path="/operator" element={<ProtectedRoute allowedRoles={['OPERATOR']}><OperatorDashboard /></ProtectedRoute>} />
-        <Route path="/operator/assigned-queue" element={<ProtectedRoute allowedRoles={['OPERATOR']}><AssignedQueuePage /></ProtectedRoute>} />
-        <Route path="/operator/serve-token" element={<ProtectedRoute allowedRoles={['OPERATOR']}><ServeTokenPage /></ProtectedRoute>} />
+
 
         <Route path="*" element={<Layout><HomePage /></Layout>} />
       </Routes>

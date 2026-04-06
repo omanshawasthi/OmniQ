@@ -1,6 +1,5 @@
 import Department from '../models/Department.js';
 import Branch from '../models/Branch.js';
-import Counter from '../models/Counter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 // Create new department
@@ -18,6 +17,16 @@ export const createDepartment = asyncHandler(async (req, res) => {
     icon,
     sortOrder
   } = req.body;
+
+  // Authorization check for STAFF
+  if (req.user && req.user.role === 'staff') {
+    if (!req.user.assignedBranch || req.user.assignedBranch.toString() !== branchId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Staff can only create departments for their assigned branch.'
+      });
+    }
+  }
 
   // Validate branch exists
   const branch = await Branch.findById(branchId);
@@ -56,7 +65,14 @@ export const getDepartments = asyncHandler(async (req, res) => {
   const { branchId, isActive } = req.query;
 
   const query = {};
-  if (branchId) query.branchId = branchId;
+  
+  // Security check: If staff, they can ONLY see their own branch
+  if (req.user && req.user.role === 'staff') {
+    query.branchId = req.user.assignedBranch;
+  } else if (branchId) {
+    query.branchId = branchId;
+  }
+  
   if (isActive !== undefined) query.isActive = isActive === 'true';
 
   const departments = await Department.find(query)
@@ -103,6 +119,31 @@ export const updateDepartment = asyncHandler(async (req, res) => {
     }
   }
 
+  // Get department first to check its branchId for STAFF
+  const existingDepartment = await Department.findById(id);
+  if (!existingDepartment) {
+    return res.status(404).json({
+      success: false,
+      message: 'Department not found'
+    });
+  }
+
+  if (req.user && req.user.role === 'staff') {
+    if (!req.user.assignedBranch || req.user.assignedBranch.toString() !== existingDepartment.branchId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Staff can only update departments in their assigned branch.'
+      });
+    }
+    // Also prevent staff from moving a department to another branch
+    if (updateData.branchId && updateData.branchId.toString() !== req.user.assignedBranch.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Cannot move department to another branch'
+      });
+    }
+  }
+
   const department = await Department.findByIdAndUpdate(
     id,
     updateData,
@@ -136,17 +177,13 @@ export const deleteDepartment = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if department has active counters
-  const activeCounters = await Counter.countDocuments({
-    departmentId: id,
-    status: { $ne: 'offline' }
-  });
-
-  if (activeCounters > 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Cannot delete department with assigned counters. Reassign or delete them first.'
-    });
+  if (req.user && req.user.role === 'staff') {
+    if (!req.user.assignedBranch || req.user.assignedBranch.toString() !== department.branchId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Staff can only delete departments in their assigned branch.'
+      });
+    }
   }
 
   await Department.findByIdAndDelete(id);

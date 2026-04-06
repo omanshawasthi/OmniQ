@@ -29,7 +29,6 @@ const LoginPage = () => {
       const userRole = useAuthStore.getState().user?.role
       if (userRole === 'ADMIN') navigate('/admin')
       else if (userRole === 'STAFF') navigate('/staff')
-      else if (userRole === 'OPERATOR') navigate('/operator')
       else navigate('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
@@ -38,7 +37,15 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8">
+        <Link to="/" className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+          <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Home
+        </Link>
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">

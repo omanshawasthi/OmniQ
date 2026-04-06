@@ -24,8 +24,8 @@ export const registerSchema = Joi.object({
     'any.required': 'Password is required'
   }),
   
-  role: Joi.string().lowercase().valid('user', 'staff', 'operator', 'admin').optional().messages({
-    'any.only': 'Role must be one of: user, staff, operator, admin'
+  role: Joi.string().lowercase().valid('user', 'staff', 'admin').optional().messages({
+    'any.only': 'Role must be one of: user, staff, admin'
   })
 })
 

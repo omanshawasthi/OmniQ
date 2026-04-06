@@ -76,28 +76,6 @@ const Sidebar = () => {
       },
     ] : []),
     
-    // Operator navigation
-    ...(hasRole('operator') ? [
-      {
-        name: 'Dashboard',
-        href: '/operator',
-        icon: Home,
-        current: location.pathname === '/operator'
-      },
-      {
-        name: 'Assigned Queue',
-        href: '/operator/assigned-queue',
-        icon: Users,
-        current: location.pathname === '/operator/assigned-queue'
-      },
-      {
-        name: 'Serve Token',
-        href: '/operator/serve-token',
-        icon: Calendar,
-        current: location.pathname === '/operator/serve-token'
-      },
-    ] : []),
-    
     // Admin navigation
     ...(hasRole('admin') ? [
       {

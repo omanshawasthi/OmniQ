@@ -38,11 +38,6 @@ const userSchema = new mongoose.Schema({
     ref: 'Branch',
     default: null
   },
-  assignedCounter: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Counter',
-    default: null
-  },
   isActive: {
     type: Boolean,
     default: true

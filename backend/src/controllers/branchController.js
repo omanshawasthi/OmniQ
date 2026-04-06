@@ -1,7 +1,7 @@
 import Branch from '../models/Branch.js'
 import Department from '../models/Department.js'
-import Counter from '../models/Counter.js'
 import Token from '../models/Token.js'
+import User from '../models/User.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
 
 // Create new branch
@@ -11,6 +11,7 @@ export const createBranch = asyncHandler(async (req, res) => {
     address,
     phone,
     email,
+    adminPassword,
     operatingHours,
     settings,
     isActive = true
@@ -27,6 +28,23 @@ export const createBranch = asyncHandler(async (req, res) => {
   })
 
   await branch.save()
+
+  // Auto-create initial staff user if email and password are provided
+  if (email && adminPassword) {
+    const existingUser = await User.findOne({ email })
+    if (!existingUser) {
+      const user = new User({
+        name: `${name} Admin`,
+        email,
+        phone, // Optionally use branch phone or leave null
+        password: adminPassword,
+        role: 'staff',
+        assignedBranch: branch._id,
+        isActive: true
+      })
+      await user.save()
+    }
+  }
 
   res.status(201).json({
     success: true,
@@ -80,7 +98,6 @@ export const getBranch = asyncHandler(async (req, res) => {
 
   const branch = await Branch.findById(id)
     .populate('departments')
-    .populate('counters')
 
   if (!branch) {
     return res.status(404).json({
@@ -193,13 +210,11 @@ export const getBranchStats = asyncHandler(async (req, res) => {
     totalTokens,
     completedTokens,
     activeDepartments,
-    activeCounters,
     avgWaitTime
   ] = await Promise.all([
     Token.countDocuments(query),
     Token.countDocuments({ ...query, status: 'completed' }),
     Department.countDocuments({ branchId: id, isActive: true }),
-    Counter.countDocuments({ branchId: id, status: 'active' }),
     Token.aggregate([
       { $match: query },
       { $group: { _id: null, avgWaitTime: { $avg: '$estimatedWaitTime' } } }
@@ -211,7 +226,6 @@ export const getBranchStats = asyncHandler(async (req, res) => {
     completedTokens,
     completionRate: totalTokens > 0 ? (completedTokens / totalTokens) * 100 : 0,
     activeDepartments,
-    activeCounters,
     averageWaitTime: avgWaitTime[0]?.avgWaitTime || 0
   }
 

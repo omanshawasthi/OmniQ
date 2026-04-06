@@ -347,7 +347,6 @@ const QueueManagementPage = () => {
                         <div className="ml-3">
                           <p className="font-medium text-gray-900">{token.tokenNumber}</p>
                           <p className="text-sm text-gray-600">{token.userId?.name || 'Walk-in'}</p>
-                          <p className="text-xs text-gray-500">Counter: {token.counterId?.name || 'N/A'}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">

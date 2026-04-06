@@ -17,11 +17,6 @@ const queueLogSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Performed by is required']
   },
-  counterId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Counter',
-    default: null
-  },
   timestamp: {
     type: Date,
     default: Date.now
@@ -51,7 +46,6 @@ queueLogSchema.statics.logAction = async function(data) {
     tokenId: data.tokenId,
     action: data.action,
     performedBy: data.performedBy,
-    counterId: data.counterId || null,
     metadata: data.metadata || {},
     systemGenerated: data.systemGenerated || false,
     ipAddress: data.ipAddress,
@@ -65,14 +59,12 @@ queueLogSchema.statics.logAction = async function(data) {
 queueLogSchema.statics.getTokenHistory = async function(tokenId) {
   return await this.find({ tokenId })
     .populate('performedBy', 'name email role')
-    .populate('counterId', 'name')
     .sort({ timestamp: 1 });
 };
 
-// Static method to get counter activity
-queueLogSchema.statics.getCounterActivity = async function(counterId, startDate, endDate) {
+// Static method to get activity (formerly counter activity)
+queueLogSchema.statics.getActivity = async function(startDate, endDate) {
   const query = {
-    counterId,
     timestamp: {
       $gte: startDate,
       $lte: endDate
@@ -127,7 +119,6 @@ queueLogSchema.statics.getDailyStats = async function(branchId, departmentId, da
 // Index for faster queries
 queueLogSchema.index({ tokenId: 1, timestamp: -1 });
 queueLogSchema.index({ performedBy: 1, timestamp: -1 });
-queueLogSchema.index({ counterId: 1, timestamp: -1 });
 queueLogSchema.index({ action: 1, timestamp: -1 });
 queueLogSchema.index({ timestamp: -1 });
 

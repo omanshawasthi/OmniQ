@@ -6,6 +6,21 @@ import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Edit, Trash2, Plus, Loader2, Layers, LogOut, Monitor } from 'lucide-react'
 
+export const STANDARD_DEPARTMENTS = [
+  'General Medicine',
+  'Cardiology', 
+  'Orthopedics',
+  'Pediatrics',
+  'Gynecology',
+  'Dental',
+  'ENT',
+  'Dermatology',
+  'Neurology',
+  'Ophthalmology',
+  'Psychiatry',
+  'Physiotherapy'
+];
+
 // Default empty department structure
 const initialFormState = {
   name: '',
@@ -18,8 +33,12 @@ const initialFormState = {
 const DepartmentsPage = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { logout } = useAuthStore()
-  const [selectedBranchId, setSelectedBranchId] = useState('')
+  const { logout, user } = useAuthStore()
+  
+  const isStaff = user?.role?.toUpperCase() === 'STAFF'
+  const startingBranchId = isStaff ? (user?.assignedBranch?._id || user?.assignedBranch) : ''
+  
+  const [selectedBranchId, setSelectedBranchId] = useState(startingBranchId)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState(initialFormState)
@@ -40,12 +59,12 @@ const DepartmentsPage = () => {
 
   const branches = branchesResponse?.data?.branches || branchesResponse?.data || []
 
-  // Default to first branch if none selected and branches exist
+  // Default to first branch if none selected and branches exist (for Admin)
   React.useEffect(() => {
-    if (!selectedBranchId && branches.length > 0) {
+    if (!isStaff && !selectedBranchId && branches.length > 0) {
       setSelectedBranchId(branches[0]._id)
     }
-  }, [branches, selectedBranchId])
+  }, [branches, selectedBranchId, isStaff])
 
   // Fetch departments for selected branch
   const { data: departmentsResponse, isLoading: isLoadingDepartments } = useQuery({
@@ -146,9 +165,9 @@ const DepartmentsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link to="/admin/branches" className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
+              <Link to={isStaff ? "/staff" : "/admin/branches"} className="flex items-center text-gray-600 hover:text-gray-900 mr-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Branches
+                Back to {isStaff ? "Dashboard" : "Branches"}
               </Link>
               <h1 className="text-xl font-semibold text-gray-900">Manage Departments</h1>
             </div>
@@ -161,20 +180,32 @@ const DepartmentsPage = () => {
         {/* Branch Context Selector */}
         <div className="bg-white p-6 rounded-lg shadow-sm border mb-8 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h2 className="text-sm font-medium text-gray-700">Select Branch Context:</h2>
-            {isLoadingBranches ? (
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            ) : (
-                <select
-                  value={selectedBranchId}
-                  onChange={(e) => setSelectedBranchId(e.target.value)}
-                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[250px]"
-                >
-                  <option value="" disabled>Select a branch</option>
-                  {branches.map(b => (
-                    <option key={b._id} value={b._id}>{b.name}</option>
-                  ))}
-                </select>
+            {!isStaff && (
+              <>
+                <h2 className="text-sm font-medium text-gray-700">Select Branch Context:</h2>
+                {isLoadingBranches ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                ) : (
+                    <select
+                      value={selectedBranchId}
+                      onChange={(e) => setSelectedBranchId(e.target.value)}
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[250px]"
+                    >
+                      <option value="" disabled>Select a branch</option>
+                      {branches.map(b => (
+                        <option key={b._id} value={b._id}>{b.name}</option>
+                      ))}
+                    </select>
+                )}
+              </>
+            )}
+            {isStaff && (
+              <div className="flex flex-col">
+                <h2 className="text-lg font-bold text-gray-900">Your Branch Departments</h2>
+                <p className="text-sm text-blue-600 font-medium">
+                  Branch: {user?.assignedBranch?.name || 'Assigned Branch'}
+                </p>
+              </div>
             )}
           </div>
           <button
@@ -276,13 +307,17 @@ const DepartmentsPage = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Department Name *</label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
+                      >
+                        <option value="" disabled>Select standardized department...</option>
+                        {STANDARD_DEPARTMENTS.map(dept => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Description</label>

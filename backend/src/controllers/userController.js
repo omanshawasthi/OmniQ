@@ -23,7 +23,6 @@ export const getUsers = asyncHandler(async (req, res) => {
 
   const users = await User.find(query)
     .populate('assignedBranch', 'name')
-    .populate('assignedCounter', 'name')
     .select('-password')
     .sort({ createdAt: -1 })
     .limit(limit * 1)
@@ -48,8 +47,6 @@ export const getUser = asyncHandler(async (req, res) => {
 
   const user = await User.findById(id)
     .populate('assignedBranch', 'name address phone')
-    .populate('assignedCounter', 'name departmentId')
-    .populate('assignedCounter.departmentId', 'name')
     .select('-password')
 
   if (!user) {
@@ -91,7 +88,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     id,
     updateData,
     { new: true, runValidators: true }
-  ).populate('assignedBranch assignedCounter', 'name')
+  ).populate('assignedBranch', 'name')
    .select('-password')
 
   if (!user) {
@@ -195,12 +192,11 @@ export const getUserStats = asyncHandler(async (req, res) => {
 // Update user role
 export const updateUserRole = asyncHandler(async (req, res) => {
   const { id } = req.params
-  const { role, assignedBranch, assignedCounter } = req.body
+  const { role, assignedBranch } = req.body
 
   const user = await AuthService.updateUserRole(id, {
     role,
-    assignedBranch,
-    assignedCounter
+    assignedBranch
   }, req.user)
 
   res.status(200).json({

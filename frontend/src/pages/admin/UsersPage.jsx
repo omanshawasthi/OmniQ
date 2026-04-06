@@ -14,8 +14,14 @@ const ROLES = ['USER', 'STAFF', 'ADMIN']
 const roleBadgeClass = (role) => {
   const r = role?.toUpperCase()
   if (r === 'ADMIN') return 'bg-purple-100 text-purple-800'
-  if (r === 'STAFF') return 'bg-blue-100 text-blue-800'
+  if (r === 'STAFF') return 'bg-blue-100 text-blue-800 border border-blue-200'
   return 'bg-gray-100 text-gray-700'
+}
+
+const statusBadgeClass = (isActive, role) => {
+  if (isActive) return 'bg-green-100 text-green-800'
+  if (role?.toUpperCase() === 'STAFF') return 'bg-amber-100 text-amber-800 border border-amber-200 shadow-sm'
+  return 'bg-red-100 text-red-800'
 }
 
 const UsersPage = () => {
@@ -114,8 +120,7 @@ const UsersPage = () => {
       id: editingUser._id,
       roleData: {
         role: newRole.toLowerCase(),
-        assignedBranch: newRole === 'STAFF' ? assignedBranch : null,
-        assignedCounter: null
+        assignedBranch: newRole === 'STAFF' ? assignedBranch : null
       }
     })
   }
@@ -234,8 +239,8 @@ const UsersPage = () => {
 
                         {/* Status */}
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {user.isActive ? 'Active' : 'Inactive'}
+                          <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeClass(user.isActive, user.role)}`}>
+                            {user.isActive ? 'Active' : (user.role?.toUpperCase() === 'STAFF' ? 'Pending Approval' : 'Inactive')}
                           </span>
                         </td>
 
@@ -244,9 +249,6 @@ const UsersPage = () => {
                           {user.assignedBranch ? (
                             <div className="text-xs text-gray-700">
                               <div className="font-medium">{user.assignedBranch?.name || 'Branch assigned'}</div>
-                              {user.assignedCounter && (
-                                <div className="text-gray-500 mt-0.5">Counter: {user.assignedCounter?.name}</div>
-                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-gray-400">—</span>

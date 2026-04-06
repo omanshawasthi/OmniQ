@@ -57,6 +57,7 @@ const StaffDashboardPage = () => {
             <nav className="flex items-center space-x-6">
               <span className="text-gray-900 font-medium">Dashboard</span>
               <Link to="/staff/queue" className="text-gray-500 hover:text-blue-600 font-medium transition-colors">Today's Queue</Link>
+              <Link to="/admin/departments" className="text-gray-500 hover:text-blue-600 font-medium transition-colors">Manage Departments</Link>
               <button 
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-gray-500 hover:text-red-600 font-medium transition-colors border-l pl-6"

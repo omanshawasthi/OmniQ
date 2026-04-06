@@ -1,11 +1,29 @@
 import mongoose from 'mongoose';
 
+export const STANDARD_DEPARTMENTS = [
+  'General Medicine',
+  'Cardiology', 
+  'Orthopedics',
+  'Pediatrics',
+  'Gynecology',
+  'Dental',
+  'ENT',
+  'Dermatology',
+  'Neurology',
+  'Ophthalmology',
+  'Psychiatry',
+  'Physiotherapy'
+];
+
 const departmentSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Department name is required'],
-    trim: true,
-    maxlength: [100, 'Department name cannot exceed 100 characters']
+    enum: {
+      values: STANDARD_DEPARTMENTS,
+      message: '{VALUE} is not a valid standardized department name'
+    },
+    trim: true
   },
   description: {
     type: String,

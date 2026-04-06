@@ -1,5 +1,4 @@
 import Token from '../models/Token.js'
-import Counter from '../models/Counter.js'
 import QueueLog from '../models/QueueLog.js'
 import Department from '../models/Department.js'
 import { TOKEN_STATUS, QUEUE_ACTIONS, SOCKET_EVENTS } from '../utils/constants.js'
@@ -37,7 +36,7 @@ export class QueueService {
   }
 
   // Get today's active queue
-  static async getTodayQueue({ branchId, departmentId, counterId, status }) {
+  static async getTodayQueue({ branchId, departmentId, status }) {
     // 1. Expire stale tokens first to ensure the queue is clean
     await QueueLifecycleService.expireOldTokens()
 
@@ -55,7 +54,6 @@ export class QueueService {
     }
 
     if (departmentId) query.departmentId = departmentId
-    if (counterId) query.counterId = counterId
     if (status) query.status = status
 
     // Optional sorts: urgent first, then tokenNumber
@@ -66,7 +64,6 @@ export class QueueService {
     const tokens = await Token.find(query)
       .populate('userId', 'name phone')
       .populate('departmentId', 'name')
-      .populate('counterId', 'name')
       .sort([
         { priority: -1 },
         { tokenNumber: 1 }
@@ -79,15 +76,11 @@ export class QueueService {
   }
 
   // Get queue status for a branch/department
-  static async getQueueStatus(branchId, departmentId = null, counterId = null) {
+  static async getQueueStatus(branchId, departmentId = null) {
     const query = { branchId }
     
     if (departmentId) {
       query.departmentId = departmentId
-    }
-    
-    if (counterId) {
-      query.counterId = counterId
     }
 
     // Get current queue
@@ -108,7 +101,6 @@ export class QueueService {
       status: TOKEN_STATUS.SERVING
     })
     .populate('userId', 'name phone')
-    .populate('counterId', 'name')
     .populate('departmentId', 'name')
 
     const heldTokens = await Token.find({
@@ -118,19 +110,10 @@ export class QueueService {
     .populate('userId', 'name phone')
     .populate('departmentId', 'name')
 
-    // Get counter status
-    const counters = await Counter.find({
-      branchId,
-      ...(departmentId && { departmentId })
-    })
-    .populate('assignedOperator', 'name')
-    .populate('currentToken', 'tokenNumber')
-
     return {
       waiting: waitingTokens,
       serving: servingTokens,
       held: heldTokens,
-      counters,
       statistics: {
         totalWaiting: waitingTokens.length,
         totalServing: servingTokens.length,
@@ -140,24 +123,13 @@ export class QueueService {
     }
   }
 
-  // Call next token for a counter
-  static async callNextToken(counterId, performedBy) {
-    const counter = await Counter.findById(counterId).populate('departmentId')
-    
-    if (!counter) {
-      throw new Error('Counter not found')
-    }
-
-    if (counter.status !== 'active') {
-      throw new Error('Counter is not active')
-    }
-
+  // Call next token - obsolete but retaining safe version
+  static async callNextToken(branchId, departmentId, performedBy) {
     // Get next token in queue
     const nextToken = await Token.findOne({
-      branchId: counter.branchId,
-      departmentId: counter.departmentId,
-      status: TOKEN_STATUS.WAITING,
-      counterId: { $in: [null, counterId] }
+      branchId,
+      departmentId,
+      status: TOKEN_STATUS.WAITING
     })
     .populate('userId', 'name phone')
     .sort([
@@ -170,43 +142,31 @@ export class QueueService {
       throw new Error('No tokens in queue')
     }
 
-    // Mark current token as completed if exists
-    if (counter.currentToken) {
-      await this.completeToken(counter.currentToken.toString(), performedBy, 0)
-    }
-
     // Update token status
     const statusUpdate = nextToken.updateStatus(TOKEN_STATUS.SERVING, performedBy)
-    nextToken.counterId = counterId
     nextToken.startedServiceAt = new Date()
     await nextToken.save()
-
-    // Update counter
-    counter.currentToken = nextToken._id
-    counter.lastActivity = new Date()
-    await counter.save()
 
     // Log action
     await QueueLog.logAction({
       tokenId: nextToken._id,
       action: QUEUE_ACTIONS.CALLED,
       performedBy,
-      counterId,
       metadata: statusUpdate.metadata
     })
 
     // Update wait times for remaining tokens
-    await this.updateQueueWaitTimes(counter.branchId, counter.departmentId)
+    await this.updateQueueWaitTimes(branchId, departmentId)
 
     // Emit socket event for real-time updates
-    this._emitQueueUpdate(counter.branchId, counter.departmentId)
+    this._emitQueueUpdate(branchId, departmentId)
 
     return nextToken
   }
 
   // Skip token
   static async skipToken(tokenId, performedBy, reason = '') {
-    const token = await Token.findById(tokenId).populate('counterId')
+    const token = await Token.findById(tokenId)
 
     if (!token) {
       throw new Error('Token not found')
@@ -220,20 +180,11 @@ export class QueueService {
     const statusUpdate = token.updateStatus(TOKEN_STATUS.SKIPPED, performedBy, reason)
     await token.save()
 
-    // Clear counter if token was serving
-    if (token.counterId) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: new Date()
-      })
-    }
-
     // Log action
     await QueueLog.logAction({
       tokenId: token._id,
       action: QUEUE_ACTIONS.SKIPPED,
       performedBy,
-      counterId: token.counterId,
       metadata: {
         ...statusUpdate.metadata,
         reason
@@ -262,20 +213,11 @@ export class QueueService {
     const statusUpdate = token.updateStatus(TOKEN_STATUS.HELD, performedBy, reason)
     await token.save()
 
-    // Clear counter
-    if (token.counterId) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        lastActivity: new Date()
-      })
-    }
-
     // Log action
     await QueueLog.logAction({
       tokenId: token._id,
       action: QUEUE_ACTIONS.HELD,
       performedBy,
-      counterId: token.counterId,
       metadata: {
         ...statusUpdate.metadata,
         reason
@@ -311,21 +253,11 @@ export class QueueService {
     token.actualServiceTime = actualServiceTime
     await token.save()
 
-    // Update counter statistics
-    if (token.counterId) {
-      await Counter.findByIdAndUpdate(token.counterId, {
-        currentToken: null,
-        totalServedToday: { $inc: 1 },
-        lastActivity: new Date()
-      })
-    }
-
     // Log action
     await QueueLog.logAction({
       tokenId: token._id,
       action: QUEUE_ACTIONS.COMPLETED,
       performedBy,
-      counterId: token.counterId,
       metadata: {
         ...statusUpdate.metadata,
         serviceTime: actualServiceTime

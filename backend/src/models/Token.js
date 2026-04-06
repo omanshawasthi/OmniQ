@@ -25,11 +25,6 @@ const tokenSchema = new mongoose.Schema({
     ref: 'Department',
     required: [true, 'Department is required']
   },
-  counterId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Counter',
-    default: null
-  },
   bookingType: {
     type: String,
     enum: Object.values(BOOKING_TYPE),

@@ -2,7 +2,6 @@
 export const USER_ROLES = {
   USER: 'USER',
   STAFF: 'STAFF',
-  OPERATOR: 'OPERATOR',
   ADMIN: 'ADMIN'
 };
 
@@ -10,7 +9,6 @@ export const USER_ROLES = {
 export const ROLES = {
   USER: 'user',
   STAFF: 'staff',
-  OPERATOR: 'operator',
   ADMIN: 'admin'
 };
 
@@ -53,13 +51,7 @@ export const BOOKING_TYPE = {
   APPOINTMENT: 'appointment'
 };
 
-// Counter Status
-export const COUNTER_STATUS = {
-  OFFLINE: 'offline',
-  ACTIVE: 'active',
-  PAUSED: 'paused',
-  INACTIVE: 'inactive'
-};
+
 
 // User Permissions
 export const PERMISSIONS = {
@@ -69,7 +61,6 @@ export const PERMISSIONS = {
   CONTROL_QUEUE: 'control_queue',
   MANAGE_BRANCHES: 'manage_branches',
   MANAGE_DEPARTMENTS: 'manage_departments',
-  MANAGE_COUNTERS: 'manage_counters',
   MANAGE_USERS: 'manage_users',
   VIEW_ANALYTICS: 'view_analytics'
 };
@@ -86,17 +77,12 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.CREATE_WALK_IN,
     PERMISSIONS.CONTROL_QUEUE
   ],
-  [USER_ROLES.OPERATOR]: [
-    PERMISSIONS.VIEW_QUEUE_STATUS,
-    PERMISSIONS.CONTROL_QUEUE
-  ],
   [USER_ROLES.ADMIN]: ['*'] // Full access
 };
 
 // Also add lowercase versions for secondary components using mixed logic
 ROLE_PERMISSIONS['user'] = ROLE_PERMISSIONS[USER_ROLES.USER];
 ROLE_PERMISSIONS['staff'] = ROLE_PERMISSIONS[USER_ROLES.STAFF];
-ROLE_PERMISSIONS['operator'] = ROLE_PERMISSIONS[USER_ROLES.OPERATOR];
 ROLE_PERMISSIONS['admin'] = ROLE_PERMISSIONS[USER_ROLES.ADMIN];
 
 // Valid State Transitions
@@ -156,7 +142,6 @@ export const QUEUE_ACTIONS = {
 export const ROOM_TYPES = {
   BRANCH: 'branch_',
   DEPARTMENT: 'dept_',
-  COUNTER: 'counter_',
   USER: 'user_',
   PUBLIC_DISPLAY: 'display_'
 };

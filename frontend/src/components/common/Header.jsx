@@ -44,13 +44,6 @@ const Header = () => {
       { name: 'Search', href: '/search', icon: Users },
     ] : []),
     
-    // Operator navigation
-    ...(hasRole('operator') ? [
-      { name: 'Dashboard', href: '/dashboard', icon: Home },
-      { name: 'My Queue', href: '/assigned-queue', icon: Users },
-      { name: 'Serve Token', href: '/serve-token', icon: Calendar },
-    ] : []),
-    
     // Admin navigation
     ...(hasRole('admin') ? [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -73,11 +66,6 @@ const Header = () => {
           <div className="flex items-center">
             <Link to="/dashboard" className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900">Queueless</h1>
-              {hasRole('operator') && user?.assignedCounter && (
-                <span className="ml-2 px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs">
-                  Counter {user.assignedCounter.name}
-                </span>
-              )}
             </Link>
 
             {/* Desktop navigation */}

@@ -51,7 +51,6 @@ export class TokenStateMachine {
       tokenId: this.token._id,
       action: this.getActionForTransition(newState),
       performedBy,
-      counterId: this.token.counterId,
       timestamp,
       metadata: {
         previousStatus: oldState,

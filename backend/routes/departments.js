@@ -14,8 +14,8 @@ const router = express.Router();
 router.get('/', authenticate, getDepartments);
 router.get('/:id', authenticate, getDepartment);
 
-// Restrict creating, updating, and deleting to ADMIN strictly
-router.use(authenticate, authorize('ADMIN'));
+// Restrict creating, updating, and deleting to ADMIN and STAFF
+router.use(authenticate, authorize('ADMIN', 'STAFF'));
 
 router.post('/', createDepartment);
 router.put('/:id', updateDepartment);

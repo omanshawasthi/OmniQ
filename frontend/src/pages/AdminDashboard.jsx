@@ -56,9 +56,6 @@ const AdminDashboard = () => {
               <Link to="/admin/branches" className="text-gray-600 hover:text-gray-900 text-sm">
                 Branches
               </Link>
-              <Link to="/admin/counters" className="text-gray-600 hover:text-gray-900 text-sm">
-                Counters
-              </Link>
               <Link to="/admin/settings" className="text-gray-600 hover:text-gray-900 text-sm">
                 Settings
               </Link>
@@ -190,14 +187,6 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-600">View performance metrics</p>
               </Link>
 
-              <Link
-                to="/admin/counters"
-                className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
-              >
-                <ListOrdered className="h-8 w-8 text-primary-600 mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Counters</h3>
-                <p className="text-sm text-gray-600">Setup and assign counters</p>
-              </Link>
             </div>
 
             {/* Additional Info / Status */}
@@ -255,13 +244,6 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 mr-3"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">Counters Tracked</p>
-                        <p className="text-xs text-gray-600">{data?.system?.totalCounters || 0} total physical counters capable of token processing.</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

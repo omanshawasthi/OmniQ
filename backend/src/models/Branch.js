@@ -124,13 +124,6 @@ branchSchema.virtual('departments', {
   foreignField: 'branchId'
 });
 
-// Virtual for counters relationship
-branchSchema.virtual('counters', {
-  ref: 'Counter',
-  localField: '_id',
-  foreignField: 'branchId'
-});
-
 // Index for faster queries
 branchSchema.index({ name: 1 });
 branchSchema.index({ isActive: 1 });

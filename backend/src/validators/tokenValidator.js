@@ -112,9 +112,7 @@ export const queueActionSchema = Joi.object({
     'any.required': 'Action is required'
   }),
   
-  counterId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().messages({
-    'string.pattern.base': 'Invalid counter ID'
-  }),
+
   
   reason: Joi.string().max(500).optional().messages({
     'string.max': 'Reason cannot exceed 500 characters'
@@ -134,9 +132,5 @@ export const queueStatusSchema = Joi.object({
   
   departmentId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().messages({
     'string.pattern.base': 'Invalid department ID'
-  }),
-  
-  counterId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().messages({
-    'string.pattern.base': 'Invalid counter ID'
   })
 })

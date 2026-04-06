@@ -2,7 +2,6 @@ import Token from '../models/Token.js';
 import User from '../models/User.js';
 import Branch from '../models/Branch.js';
 import Department from '../models/Department.js';
-import Counter from '../models/Counter.js';
 import { TOKEN_STATUS, BOOKING_TYPE } from '../utils/constants.js';
 
 export class AdminService {
@@ -29,7 +28,6 @@ export class AdminService {
       totalUsers,
       totalBranches,
       totalDepartments,
-      totalCounters,
       todayTokensTotal,
       waitingTokens,
       servingTokens,
@@ -42,7 +40,6 @@ export class AdminService {
       User.countDocuments(),
       Branch.countDocuments({ isActive: true }),
       Department.countDocuments({ isActive: true }),
-      Counter.countDocuments({ status: { $ne: 'offline' } }), // active/inactive
       
       // Tokens today
       Token.countDocuments(todayFilter),
@@ -66,8 +63,7 @@ export class AdminService {
       system: {
         totalUsers,
         totalBranches,
-        totalDepartments,
-        totalCounters
+        totalDepartments
       },
       today: {
         totalTokens: todayTokensTotal,

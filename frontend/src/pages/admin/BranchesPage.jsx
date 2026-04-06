@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../services/api'
 import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Building, Edit, Trash2, Plus, Loader2, Search, LogOut } from 'lucide-react'
+import { ArrowLeft, Building, Edit, Trash2, Plus, Loader2, Search, LogOut, UserPlus } from 'lucide-react'
 
 // Default empty branch structure
 const initialFormState = {
@@ -12,6 +12,7 @@ const initialFormState = {
   address: '',
   phone: '',
   email: '',
+  adminPassword: '',
   isActive: true,
   operatingHours: {
     monday: { open: '09:00', close: '17:00', isClosed: false },
@@ -28,10 +29,16 @@ const BranchesPage = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { logout } = useAuthStore()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState(initialFormState)
+
+  // Staff creation state
+  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false)
+  const [selectedBranchId, setSelectedBranchId] = useState(null)
+  const [staffFormData, setStaffFormData] = useState({ name: '', email: '', phone: '', password: '' })
 
   const handleSignOut = () => {
     logout()
@@ -91,6 +98,17 @@ const BranchesPage = () => {
     }
   })
 
+  const createStaffMutation = useMutation({
+    mutationFn: (data) => apiClient.users.create(data),
+    onSuccess: () => {
+      toast.success('Staff member created successfully')
+      closeStaffModal()
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to create staff member')
+    }
+  })
+
   // Handlers
   const handleOpenModal = (branch = null) => {
     if (branch) {
@@ -100,6 +118,7 @@ const BranchesPage = () => {
         address: branch.address,
         phone: branch.phone,
         email: branch.email || '',
+        adminPassword: '',
         isActive: branch.isActive,
         operatingHours: branch.operatingHours || initialFormState.operatingHours
       })
@@ -129,6 +148,27 @@ const BranchesPage = () => {
     if (window.confirm('Are you sure you want to delete this branch?')) {
       deleteMutation.mutate(id)
     }
+  }
+
+  const handleOpenStaffModal = (branchId) => {
+    setSelectedBranchId(branchId)
+    setStaffFormData({ name: '', email: '', phone: '', password: '' })
+    setIsStaffModalOpen(true)
+  }
+
+  const closeStaffModal = () => {
+    setIsStaffModalOpen(false)
+    setSelectedBranchId(null)
+    setStaffFormData({ name: '', email: '', phone: '', password: '' })
+  }
+
+  const handleStaffSubmit = (e) => {
+    e.preventDefault()
+    createStaffMutation.mutate({
+      ...staffFormData,
+      role: 'staff',
+      assignedBranch: selectedBranchId
+    })
   }
 
   return (
@@ -217,10 +257,13 @@ const BranchesPage = () => {
                       <div className="text-sm text-gray-500">{branch.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => handleOpenModal(branch)} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                      <button onClick={() => handleOpenStaffModal(branch._id)} className="text-green-600 hover:text-green-900 mr-4" title="Add Staff">
+                        <UserPlus className="h-4 w-4 inline" />
+                      </button>
+                      <button onClick={() => handleOpenModal(branch)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit Branch">
                         <Edit className="h-4 w-4 inline" />
                       </button>
-                      <button onClick={() => handleDelete(branch._id)} className="text-red-600 hover:text-red-900">
+                      <button onClick={() => handleDelete(branch._id)} className="text-red-600 hover:text-red-900" title="Delete Branch">
                         <Trash2 className="h-4 w-4 inline" />
                       </button>
                     </td>
@@ -286,6 +329,18 @@ const BranchesPage = () => {
                         />
                       </div>
                     </div>
+                    {!editingId && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Initial Staff Password</label>
+                        <input
+                          type="password"
+                          value={formData.adminPassword}
+                          onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                          placeholder="Optional: Auto-create staff account with Email and this Password"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-center mt-4">
                       <input
                         id="isActive"
@@ -311,6 +366,85 @@ const BranchesPage = () => {
                   <button
                     type="button"
                     onClick={closeModal}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Staff Modal */}
+      {isStaffModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="staff-modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeStaffModal}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleStaffSubmit}>
+                <div className="bg-white pl-6 pr-6 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="staff-modal-title">
+                    Add Staff to Branch
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={staffFormData.name}
+                        onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        value={staffFormData.email}
+                        onChange={(e) => setStaffFormData({ ...staffFormData, email: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Phone</label>
+                        <input
+                          type="text"
+                          value={staffFormData.phone}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Password *</label>
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          value={staffFormData.password}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, password: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    disabled={createStaffMutation.isPending}
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:bg-green-300"
+                  >
+                    {createStaffMutation.isPending ? 'Saving...' : 'Create Staff'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeStaffModal}
                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   >
                     Cancel

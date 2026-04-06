@@ -101,8 +101,7 @@ export const useAuth = () => {
   const hasPermission = (permission) => {
     const rolePermissions = {
       user: ['book_token', 'view_queue_status'],
-      staff: ['book_token', 'view_queue_status', 'create_walk_in', 'control_queue'],
-      operator: ['view_queue_status', 'control_queue'],
+      staff: ['book_token', 'view_queue_status', 'create_walk_in', 'control_queue', 'complete'],
       admin: ['*'] // All permissions
     }
     
@@ -130,10 +129,7 @@ export const useAuth = () => {
     return !!user?.assignedBranch
   }
 
-  // Check if user is assigned to a counter
-  const isAssignedToCounter = () => {
-    return !!user?.assignedCounter
-  }
+
 
   return {
     user,
@@ -151,7 +147,6 @@ export const useAuth = () => {
     hasPermission,
     getDisplayName,
     getInitials,
-    isAssignedToBranch,
-    isAssignedToCounter
+    isAssignedToBranch
   }
 }
