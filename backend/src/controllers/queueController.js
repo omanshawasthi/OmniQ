@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/errorHandler.js'
 
 // Get today's queue
 export const getTodayQueue = asyncHandler(async (req, res) => {
+  const { branchId, departmentId, status } = req.query;
   const todayQueue = await QueueService.getTodayQueue({
     branchId: branchId || req.user?.branchId,
     departmentId,
