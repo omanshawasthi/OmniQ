@@ -17,109 +17,74 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
   }
   
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply btn bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200;
   }
   
   .btn-secondary {
-    @apply btn bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500;
+    @apply btn bg-slate-800 text-white hover:bg-slate-900;
+  }
+
+  .btn-ghost {
+    @apply btn border-gray-200 text-gray-600 bg-transparent hover:bg-gray-50 hover:text-gray-900 border;
   }
   
-  .btn-success {
-    @apply btn bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
+  .btn-white {
+    @apply btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm;
   }
   
-  .btn-warning {
-    @apply btn bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500;
+  .card-modern {
+    @apply bg-white border border-slate-200/80 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden;
   }
-  
-  .btn-danger {
-    @apply btn bg-error-600 text-white hover:bg-error-700 focus:ring-error-500;
+
+  .card-feature {
+    @apply card-modern p-6 hover:border-blue-200 hover:shadow-md transition-all duration-300;
   }
-  
-  .btn-outline {
-    @apply btn border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-primary-500;
+
+  .badge-status {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border;
   }
-  
-  .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+
+  .badge-status-success {
+    @apply badge-status bg-emerald-50 text-emerald-700 border-emerald-100;
   }
-  
-  .btn-md {
-    @apply px-4 py-2 text-sm;
+
+  .badge-status-warning {
+    @apply badge-status bg-amber-50 text-amber-700 border-amber-100;
   }
-  
-  .btn-lg {
-    @apply px-6 py-3 text-base;
+
+  .badge-status-info {
+    @apply badge-status bg-blue-50 text-blue-700 border-blue-100;
   }
-  
-  .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500;
+
+  .label-micro {
+    @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none;
   }
-  
-  .card {
-    @apply bg-white overflow-hidden shadow-sm border border-gray-200 rounded-lg;
+
+  .text-description {
+    @apply text-sm text-slate-500 leading-relaxed;
   }
-  
-  .card-header {
-    @apply px-4 py-5 sm:px-6 border-b border-gray-200;
+
+  .dashboard-mockup {
+    @apply bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden;
   }
-  
-  .card-body {
-    @apply px-4 py-5 sm:p-6;
-  }
-  
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-  
-  .badge-primary {
-    @apply badge bg-primary-100 text-primary-800;
-  }
-  
-  .badge-success {
-    @apply badge bg-success-100 text-success-800;
-  }
-  
-  .badge-warning {
-    @apply badge bg-warning-100 text-warning-800;
-  }
-  
-  .badge-error {
-    @apply badge bg-error-100 text-error-800;
-  }
-  
-  .loading-spinner {
-    @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-600;
-  }
-  
-  .skeleton {
-    @apply bg-gray-200 rounded animate-pulse;
-  }
-  
-  .gradient-bg {
-    @apply bg-gradient-to-r from-primary-600 to-primary-700;
-  }
-  
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent;
+
+  .dashboard-header {
+    @apply bg-slate-800/50 border-b border-slate-700/50 px-4 py-3 flex items-center justify-between;
   }
 }
 
 @layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  .bg-grid-slate {
+    background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+    background-size: 24px 24px;
   }
-  
-  .text-shadow-lg {
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .backdrop-blur-xs {
-    backdrop-filter: blur(2px);
+
+  .text-glow-blue {
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
   }
 }
 

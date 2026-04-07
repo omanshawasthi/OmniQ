@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Users, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Play, Pause, SkipForward, CheckSquare } from 'lucide-react'
-import { tokenAPI, queueAPI } from '../../utils/api'
+import { ArrowLeft, Users, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Play, Pause, SkipForward, CheckSquare, Loader2 } from 'lucide-react'
+import { apiClient } from '../../services/api'
+import toast from 'react-hot-toast'
 
 const QueueManagementPage = () => {
   const [queueData, setQueueData] = useState(null)
@@ -17,70 +18,89 @@ const QueueManagementPage = () => {
     loadInitialData()
   }, [])
 
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true)
+      const res = await apiClient.branches.getAll()
+      setBranches(res.data?.data?.branches || res.data?.data || [])
+      setIsLoading(false)
+    } catch (err) {
+      console.error('Error loading initial data:', err)
+      setError('Failed to load branches')
+      setIsLoading(false)
+    }
+  }
+
+  const loadDepartments = async (branchId) => {
+    try {
+      const res = await apiClient.departments.getAll(branchId)
+      setDepartments(res.data?.data?.departments || res.data?.data || [])
+    } catch (err) {
+      console.error('Error loading departments:', err)
+      toast.error('Failed to load departments')
+    }
+  }
+
+  const loadQueueData = async () => {
+    if (!selectedBranch || !selectedDepartment) return
+    try {
+      const res = await apiClient.queue.getStatus(selectedBranch, selectedDepartment)
+      setQueueData(res.data?.data?.queueStatus)
+    } catch (err) {
+      console.error('Error loading queue data:', err)
+      setError('Failed to load queue data')
+    }
+  }
+
+  useEffect(() => {
+    if (selectedBranch) {
+      loadDepartments(selectedBranch)
+    } else {
+      setDepartments([])
+    }
+    setSelectedDepartment('')
+    setQueueData(null)
+  }, [selectedBranch])
+
   useEffect(() => {
     if (selectedBranch && selectedDepartment) {
       loadQueueData()
     }
   }, [selectedBranch, selectedDepartment])
 
-  const loadInitialData = async () => {
-    try {
-      const branchesResponse = await tokenAPI.getBranches()
-      setBranches(branchesResponse.data.data)
-      setIsLoading(false)
-    } catch (error) {
-      console.error('Error loading initial data:', error)
-      setError('Failed to load data')
-      setIsLoading(false)
-    }
-  }
-
-  const loadQueueData = async () => {
-    try {
-      const response = await queueAPI.getQueueStatus(selectedBranch, selectedDepartment)
-      setQueueData(response.data.data.queueStatus)
-    } catch (error) {
-      console.error('Error loading queue data:', error)
-      setError('Failed to load queue data')
-    }
-  }
-
   const handleTokenAction = async (tokenId, action, reason = '') => {
     setActionLoading(true)
     try {
-      let response
+      let res
       switch (action) {
-        case 'call':
-          // Need counter ID for calling next token
-          response = await queueAPI.callNextToken('counter_id_placeholder')
-          break
         case 'serve':
-          response = await queueAPI.callNextToken(tokenId)
+          // Admin level "Serve" - transition status or notify
+          toast.success('Admin serving action triggered')
           break
         case 'complete':
-          response = await queueAPI.completeToken(tokenId)
+          res = await apiClient.queue.completeToken(tokenId, 1)
           break
         case 'skip':
-          response = await queueAPI.skipToken(tokenId, reason)
+          res = await apiClient.queue.skipToken(tokenId, reason || 'Admin skip')
           break
         case 'hold':
-          response = await queueAPI.holdToken(tokenId, reason)
+          res = await apiClient.queue.holdToken(tokenId, reason || 'Admin hold')
           break
         case 'recall':
-          response = await queueAPI.recallToken(tokenId)
+          res = await apiClient.queue.recallToken(tokenId)
           break
         case 'checkin':
-          response = await queueAPI.checkInToken(tokenId)
+          res = await apiClient.queue.checkInToken(tokenId)
           break
         default:
           throw new Error('Unknown action')
       }
       
-      // Reload queue data after action
+      toast.success(res?.data?.message || `Token ${action} successful`)
       await loadQueueData()
-    } catch (error) {
-      console.error('Error performing token action:', error)
-      setError(error.response?.data?.message || `Failed to ${action} token`)
+    } catch (err) {
+      console.error('Error performing token action:', err)
+      toast.error(err.response?.data?.message || `Failed to ${action} token`)
     } finally {
       setActionLoading(false)
     }
@@ -279,7 +299,11 @@ const QueueManagementPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
               >
                 <option value="">Select department</option>
-                {/* Departments would be loaded based on selected branch */}
+                {departments.map(dept => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

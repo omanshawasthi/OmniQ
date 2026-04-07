@@ -68,7 +68,7 @@ function App() {
   return (
     <div className="min-h-screen">
       <Routes>
-        <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/display/:branchId/:departmentId" element={<PublicQueueDisplayPage />} />
 
         {/* Guest-only routes — redirect logged-in users away */}
@@ -161,7 +161,7 @@ function App() {
 
 
 
-        <Route path="*" element={<Layout><HomePage /></Layout>} />
+        <Route path="*" element={<HomePage />} />
       </Routes>
     </div>
   )

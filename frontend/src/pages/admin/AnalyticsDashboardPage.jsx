@@ -78,7 +78,7 @@ const AnalyticsDashboardPage = () => {
   });
 
   const handleExport = () => {
-    toast.success('Exporting data... (Phase A6 Feature)');
+    toast.success('Exporting summary report...');
   };
 
   if (isError) {

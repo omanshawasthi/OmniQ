@@ -95,13 +95,13 @@ export const apiClient = {
 
   // Queue
   queue: {
-    getStatus: (branchId, departmentId) => api.get(`/queue/status/${branchId}/${departmentId}`),
+    getStatus: (branchId, departmentId) => api.get(`/queue/${branchId}/${departmentId}`),
     callNext: (counterId) => api.post('/queue/call-next', { counterId }),
-    skipToken: (tokenId, reason) => api.post(`/queue/skip/${tokenId}`, { reason }),
-    holdToken: (tokenId, reason) => api.post(`/queue/hold/${tokenId}`, { reason }),
-    completeToken: (tokenId, serviceTime) => api.post(`/queue/complete/${tokenId}`, { serviceTime }),
-    recallToken: (tokenId) => api.post(`/queue/recall/${tokenId}`),
-    checkInToken: (tokenId) => api.post(`/queue/check-in/${tokenId}`),
+    skipToken: (tokenId, reason) => api.put(`/queue/${tokenId}/skip`, { reason }),
+    holdToken: (tokenId, reason) => api.put(`/queue/${tokenId}/hold`, { reason }),
+    completeToken: (tokenId, serviceTime) => api.put(`/queue/${tokenId}/complete`, { serviceTime }),
+    recallToken: (tokenId) => api.put(`/queue/${tokenId}/recall`),
+    checkInToken: (tokenId) => api.put(`/queue/${tokenId}/checkin`),
   },
 
   // Branches

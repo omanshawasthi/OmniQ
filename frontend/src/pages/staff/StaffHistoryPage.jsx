@@ -13,11 +13,11 @@ const STATUS_FLOW = {
   waiting:   { label: 'Waiting',   classes: 'bg-blue-100 text-blue-800' },
   serving:   { label: 'Serving',   classes: 'bg-green-100 text-green-800' },
   held:      { label: 'Held',      classes: 'bg-yellow-100 text-yellow-800' },
-  completed: { label: 'Completed', classes: 'bg-emerald-100 text-emerald-800' },
-  skipped:   { label: 'Skipped',   classes: 'bg-orange-100 text-orange-700' },
-  missed:    { label: 'Missed',    classes: 'bg-red-100 text-red-700' },
-  cancelled: { label: 'Cancelled', classes: 'bg-gray-100 text-gray-400' },
-  expired:   { label: 'Expired',   classes: 'bg-purple-100 text-purple-700' },
+  completed: { label: 'Completed', classes: 'bg-gray-100 text-gray-400 border border-gray-200' },
+  skipped:   { label: 'Skipped',   classes: 'bg-orange-50 text-orange-400 opacity-70' },
+  missed:    { label: 'Missed',    classes: 'bg-red-50 text-red-400 opacity-70' },
+  cancelled: { label: 'Cancelled', classes: 'bg-gray-50 text-gray-300 italic' },
+  expired:   { label: 'Expired',   classes: 'bg-gray-100 text-gray-400 italic' },
 }
 
 const formatTime = (d) =>
@@ -183,8 +183,11 @@ const StaffHistoryPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {tokens.map(token => (
-                    <tr key={token._id} className="hover:bg-gray-50 transition-colors">
+                  {tokens.map(token => {
+                    const status = (token.status || '').toLowerCase()
+                    const isFinished = ['completed', 'missed', 'cancelled', 'expired'].includes(status)
+                    return (
+                      <tr key={token._id} className={`transition-colors ${isFinished ? 'bg-gray-50/50 grayscale-[0.5] opacity-60' : 'hover:bg-gray-50'}`}>
                       <td className="px-6 py-4">
                         <span className="text-sm font-black text-gray-900 flex items-center gap-1.5">
                            <Hash className="w-3.5 h-3.5 text-gray-400" /> {token.tokenNumber}
@@ -210,7 +213,7 @@ const StaffHistoryPage = () => {
                         <StatusBadge status={token.status} />
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
