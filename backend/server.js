@@ -83,10 +83,11 @@ initializeSocket(io);
 
 // Database connection and server start
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
 
 connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     // Socket is already initialized via initializeSocket(io)
   });

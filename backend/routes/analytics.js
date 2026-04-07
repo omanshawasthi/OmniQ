@@ -3,7 +3,8 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import {
   getDashboardAnalytics,
   getPerformanceMetrics,
-  getUserAnalytics
+  getUserAnalytics,
+  getMLExport
 } from '../controllers/analyticsController.js';
 
 const router = express.Router();
@@ -20,5 +21,8 @@ router.get('/performance', getPerformanceMetrics);
 
 // Get user analytics
 router.get('/users', getUserAnalytics);
+
+// Export ML data
+router.get('/ml-export', getMLExport);
 
 export default router;

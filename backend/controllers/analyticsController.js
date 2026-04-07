@@ -286,3 +286,48 @@ export const getUserAnalytics = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Export ML training data as CSV
+// @route   GET /api/analytics/ml-export
+// @access  Private (Admin)
+export const getMLExport = async (req, res, next) => {
+  try {
+    // Only fetch tokens that fully completed their lifecycle (clean ML data)
+    // Exclude cancelled, missed, expired, or currently waiting/serving ones.
+    const tokens = await Token.find({
+      status: 'completed',
+      actualWaitMinutes: { $ne: null },
+      joinedAt: { $ne: null }
+    }).lean();
+
+    const headers = [
+      'branchId', 'departmentId', 'serviceType', 'peopleAheadAtJoin',
+      'availableStaffAtJoin', 'dayOfWeek', 'hourOfDay',
+      'actualWaitMinutes', 'predictedWaitMinutesAtJoin'
+    ];
+
+    let csvContent = headers.join(',') + '\n';
+
+    tokens.forEach(t => {
+      const row = [
+        t.branchId?.toString() || '',
+        t.departmentId?.toString() || '',
+        t.bookingType || 'walk-in',
+        t.peopleAheadAtJoin || 0,
+        t.availableStaffAtJoin || 0,
+        t.dayOfWeek ?? '',
+        t.hourOfDay ?? '',
+        +(parseFloat(t.actualWaitMinutes) || 0).toFixed(2),
+        +(parseFloat(t.estimatedWaitTime) || 0).toFixed(2)
+      ];
+      csvContent += row.join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="ml_training_data.csv"');
+    res.status(200).send(csvContent);
+  } catch (error) {
+    logger.error('ML export error:', error);
+    next(error);
+  }
+};
