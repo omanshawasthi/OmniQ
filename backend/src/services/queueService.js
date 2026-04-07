@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import Token from '../models/Token.js'
 import QueueLog from '../models/QueueLog.js'
 import Department from '../models/Department.js'
@@ -77,10 +78,10 @@ export class QueueService {
 
   // Get queue status for a branch/department
   static async getQueueStatus(branchId, departmentId = null) {
-    const query = { branchId }
+    const query = { branchId: new mongoose.Types.ObjectId(branchId) }
     
-    if (departmentId) {
-      query.departmentId = departmentId
+    if (departmentId && departmentId !== 'all') {
+      query.departmentId = new mongoose.Types.ObjectId(departmentId)
     }
 
     // Get current queue
@@ -90,11 +91,11 @@ export class QueueService {
     })
     .populate('userId', 'name phone')
     .populate('departmentId', 'name')
-    .sort([
-      { priority: -1 }, // High priority first
-      { scheduledTime: 1 }, // Earlier scheduled time first
-      { createdAt: 1 } // Earlier creation first
-    ])
+    .sort({
+      priority: -1,
+      scheduledTime: 1,
+      createdAt: 1
+    })
 
     const servingTokens = await Token.find({
       ...query,
@@ -118,7 +119,7 @@ export class QueueService {
         totalWaiting: waitingTokens.length,
         totalServing: servingTokens.length,
         totalHeld: heldTokens.length,
-        averageWaitTime: waitingTokens.reduce((sum, token) => sum + token.estimatedWaitTime, 0) / (waitingTokens.length || 1)
+        averageWaitTime: Math.round(waitingTokens.reduce((sum, token) => sum + (token.estimatedWaitTime || 0), 0) / (waitingTokens.length || 1))
       }
     }
   }

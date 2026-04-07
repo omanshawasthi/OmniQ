@@ -94,8 +94,7 @@ export class StaffService {
 
     // Date Range logic
     if (dateRange === 'today') {
-      // For Today, we strictly show active queue tokens
-      query.isActiveQueue = true;
+      // For Today, we show all tokens created for today (active and completed)
       query.$or = [
         { queueDate: today },
         { 

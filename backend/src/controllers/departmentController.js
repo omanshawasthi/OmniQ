@@ -81,7 +81,7 @@ export const getDepartments = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: { departments } // Note: keeping object wrapped to match create/update pattern or frontend might expect `data: departments` standard. Many endpoints do `data: departments`. Let's return just `data: departments` if frontend uses it directly, but let's match branchController which does `data: { branches }`. Actually, `/api/departments` frontend expects array or object? Let's send array directly since it's common. Wait, I will wrap it in `data: departments` but the frontend `routes/branches.js` was returning `data: departments` (array directly). I'll return array directly.
+    data: { departments }
   });
 });
 
