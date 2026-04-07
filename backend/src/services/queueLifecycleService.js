@@ -217,12 +217,15 @@ export class QueueLifecycleService {
     let claimed = null
     for (const candidate of candidates) {
       const now = new Date()
+      const actualWait = candidate.joinedAt ? (now - candidate.joinedAt) / (1000 * 60) : null
       const result = await Token.findOneAndUpdate(
         { _id: candidate._id, status: TOKEN_STATUS.WAITING }, // still waiting?
         {
           $set: {
             status: TOKEN_STATUS.SERVING,
-            startedServiceAt: now
+            startedServiceAt: now,
+            calledAt: now, // ML Readiness
+            actualWaitMinutes: actualWait // ML Readiness
           }
         },
         { new: true }
@@ -262,8 +265,15 @@ export class QueueLifecycleService {
     assertTransition(token, TOKEN_STATUS.SERVING)
 
     const prevStatus = token.status
+    const now = new Date()
     token.status          = TOKEN_STATUS.SERVING
-    token.startedServiceAt = new Date()
+    token.startedServiceAt = now
+    
+    // ML Readiness
+    token.calledAt = now
+    if (token.joinedAt) {
+      token.actualWaitMinutes = (now - token.joinedAt) / (1000 * 60)
+    }
 
     await token.save()
 
@@ -294,6 +304,7 @@ export class QueueLifecycleService {
     const now = new Date()
     token.status       = TOKEN_STATUS.COMPLETED
     token.completedAt  = now
+    token.servedAt     = now // ML Readiness
     if (token.startedServiceAt) {
       token.actualServiceTime = (now - token.startedServiceAt) / (1000 * 60)
     }

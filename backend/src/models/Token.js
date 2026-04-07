@@ -131,6 +131,43 @@ const tokenSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     }
+  },
+  // --- ML Readiness Fields ---
+  joinedAt: {
+    type: Date,
+    default: null
+  },
+  calledAt: {
+    type: Date,
+    default: null
+  },
+  servedAt: {
+    type: Date,
+    default: null
+  },
+  peopleAheadAtJoin: {
+    type: Number,
+    default: 0
+  },
+  availableStaffAtJoin: {
+    type: Number,
+    default: 0
+  },
+  dayOfWeek: {
+    type: Number,
+    default: null
+  },
+  hourOfDay: {
+    type: Number,
+    default: null
+  },
+  actualWaitMinutes: {
+    type: Number,
+    default: null
+  },
+  predictedWaitMinutesAtJoin: {
+    type: Number,
+    default: null
   }
 }, {
   timestamps: true

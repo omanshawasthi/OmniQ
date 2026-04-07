@@ -53,6 +53,34 @@ export class TokenService {
     }
   }
 
+  // Helper for computing ML readiness fields at JOIN
+  static async _computeMLFields(branchId, departmentId) {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const hourOfDay = now.getHours()
+
+    const peopleAheadAtJoin = await Token.countDocuments({
+      branchId,
+      departmentId,
+      status: TOKEN_STATUS.WAITING,
+      isActiveQueue: true
+    })
+
+    const availableStaffAtJoin = await User.countDocuments({
+      assignedBranch: branchId,
+      role: 'staff',
+      isActive: true
+    })
+
+    return {
+      joinedAt: now,
+      dayOfWeek,
+      hourOfDay,
+      peopleAheadAtJoin,
+      availableStaffAtJoin
+    }
+  }
+
   // Book online token
   static async bookToken(userId, tokenData) {
     const { branchId, departmentId, scheduledTime, priority = TOKEN_PRIORITY.NORMAL, notes } = tokenData
@@ -92,6 +120,8 @@ export class TokenService {
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
     const qrCode = await this.generateQRCode(tokenId)
 
+    const mlFields = await this._computeMLFields(branchId, departmentId)
+
     // Create token
     const token = new Token({
       _id: tokenId,
@@ -106,7 +136,8 @@ export class TokenService {
       scheduledTime,
       notes,
       qrCode,
-      estimatedWaitTime: 0
+      estimatedWaitTime: 0,
+      ...mlFields // Add ML tracking fields
     })
 
     await token.save()
@@ -189,6 +220,8 @@ export class TokenService {
     const tokenNumber = await this.generateTokenNumber(branchId, departmentId)
     const qrCode = await this.generateQRCode(tokenId)
 
+    const mlFields = await this._computeMLFields(branchId, departmentId)
+
     const token = new Token({
       _id: tokenId,
       tokenNumber,
@@ -202,7 +235,8 @@ export class TokenService {
       scheduledTime: new Date(),
       notes,
       qrCode,
-      estimatedWaitTime: 0
+      estimatedWaitTime: 0,
+      ...mlFields // Add ML tracking fields
     })
 
     if (!userId) {
