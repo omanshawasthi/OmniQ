@@ -23,7 +23,7 @@ import publicRoutes from './routes/public.js';
 import analyticsRoutes from './routes/analytics.js';
 import notificationRoutes from './routes/notifications.js';
 import staffRoutes from './routes/staff.js';
-import errorHandler from './middleware/errorHandler.js';
+import { errorHandler } from './src/middleware/errorHandler.js';
 
 const app = express();
 const server = createServer(app);

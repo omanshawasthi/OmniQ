@@ -184,9 +184,9 @@ const ActiveTokenPage = () => {
                 <div>
                   <p className="text-sm text-gray-600">Estimated Wait</p>
                   <p className="font-medium text-gray-900">
-                    {activeToken.estimatedWaitTime ? 
-                      `~${activeToken.estimatedWaitTime} minutes` : 
-                      'Calculating...'
+                    {activeToken.predictedWaitMinutesAtJoin != null ?
+                      `~${Math.round(activeToken.predictedWaitMinutesAtJoin)} minutes` : 
+                      (activeToken.estimatedWaitTime ? `~${activeToken.estimatedWaitTime} minutes` : 'Calculating...')
                     }
                   </p>
                 </div>

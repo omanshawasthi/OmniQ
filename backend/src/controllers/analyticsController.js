@@ -102,12 +102,60 @@ export const getPerformanceAnalytics = asyncHandler(async (req, res) => {
 });
 
 /**
- * Export analytics (Placeholder for future CSV/PDF generation)
- * GET /api/analytics/export
+ * Get user analytics
+ * GET /api/analytics/users
  */
-export const exportAnalytics = asyncHandler(async (req, res) => {
-  res.status(501).json({
-    success: false,
-    message: 'Export functionality is coming soon in Phase A6.'
+export const getUserAnalytics = asyncHandler(async (req, res) => {
+  const stats = await analyticsService.getUserAnalytics();
+  res.status(200).json({
+    success: true,
+    data: stats
   });
+});
+
+/**
+ * Get performance metrics (alias for performance analytics)
+ * GET /api/analytics/performance
+ */
+export const getPerformanceMetrics = asyncHandler(async (req, res) => {
+  const { branchId, departmentId, startDate, endDate } = req.query;
+  const stats = await analyticsService.getOverviewStats({ 
+    branchId, 
+    departmentId, 
+    startDate, 
+    endDate 
+  });
+
+  res.status(200).json({
+    success: true,
+    data: { performance: stats.overview }
+  });
+});
+
+/**
+ * Export ML training data
+ * GET /api/analytics/ml-export
+ */
+export const getMLExport = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getMLExport();
+  
+  const headers = [
+    'branchId', 'departmentId', 'serviceType', 'peopleAheadAtJoin',
+    'availableStaffAtJoin', 'dayOfWeek', 'hourOfDay',
+    'actualWaitMinutes', 'predictedWaitMinutesAtJoin'
+  ];
+
+  let csvContent = headers.join(',') + '\n';
+  data.forEach(row => {
+    csvContent += [
+      row.branchId, row.departmentId, row.serviceType, 
+      row.peopleAheadAtJoin, row.availableStaffAtJoin, 
+      row.dayOfWeek ?? '', row.hourOfDay ?? '',
+      row.actualWaitMinutes, row.predictedWaitMinutesAtJoin
+    ].join(',') + '\n';
+  });
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="ml_training_data.csv"');
+  res.status(200).send(csvContent);
 });

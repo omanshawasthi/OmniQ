@@ -59,25 +59,59 @@ export class TokenService {
     const dayOfWeek = now.getDay()
     const hourOfDay = now.getHours()
 
-    const peopleAheadAtJoin = await Token.countDocuments({
+    const sameDepartmentPeopleAhead = await Token.countDocuments({
       branchId,
       departmentId,
       status: TOKEN_STATUS.WAITING,
       isActiveQueue: true
     })
 
-    const availableStaffAtJoin = await User.countDocuments({
-      assignedBranch: branchId,
-      role: 'staff',
-      isActive: true
-    })
-
     return {
       joinedAt: now,
       dayOfWeek,
       hourOfDay,
-      peopleAheadAtJoin,
-      availableStaffAtJoin
+      sameDepartmentPeopleAhead
+    }
+  }
+
+  // Calls the Python FastAPI /predict endpoint and returns predicted wait minutes.
+  // NEVER throws — token creation must succeed even if the ML API is down.
+  static async _fetchMLPrediction(mlFields, branchId, departmentId, serviceType) {
+    const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:8000'
+    try {
+      const payload = {
+        branchId: branchId.toString(),
+        departmentId: departmentId.toString(),
+        serviceType,
+        sameDepartmentPeopleAhead: mlFields.sameDepartmentPeopleAhead,
+        dayOfWeek: mlFields.dayOfWeek,
+        hourOfDay: mlFields.hourOfDay
+      }
+
+      // Use a 3-second timeout — never block token creation for ML
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+
+      const response = await fetch(`${ML_API_URL}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      })
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        console.warn(`[ML API] Non-200 response: ${response.status}`)
+        return null
+      }
+
+      const json = await response.json()
+      const predicted = parseFloat(json?.predictedWaitMinutes)
+      return isNaN(predicted) ? null : predicted
+    } catch (err) {
+      // Silently log — never surface to caller
+      console.warn(`[ML API] Prediction failed (will use fallback): ${err.message}`)
+      return null
     }
   }
 
@@ -122,6 +156,13 @@ export class TokenService {
 
     const mlFields = await this._computeMLFields(branchId, departmentId)
 
+    // Call ML prediction — fire and capture, never block token creation
+    const predicted = await this._fetchMLPrediction(mlFields, branchId, departmentId, 'online')
+    const predictedWaitMinutesAtJoin = predicted  // null if API unavailable
+    const expectedTurnTime = (predicted != null && mlFields.joinedAt)
+      ? new Date(mlFields.joinedAt.getTime() + predicted * 60 * 1000)
+      : null
+
     // Create token
     const token = new Token({
       _id: tokenId,
@@ -136,8 +177,10 @@ export class TokenService {
       scheduledTime,
       notes,
       qrCode,
-      estimatedWaitTime: 0,
-      ...mlFields // Add ML tracking fields
+      estimatedWaitTime: predicted ?? 0,
+      ...mlFields,
+      predictedWaitMinutesAtJoin,
+      expectedTurnTime
     })
 
     await token.save()
@@ -222,6 +265,13 @@ export class TokenService {
 
     const mlFields = await this._computeMLFields(branchId, departmentId)
 
+    // Call ML prediction — fire and capture, never block token creation
+    const predicted = await this._fetchMLPrediction(mlFields, branchId, departmentId, 'walk-in')
+    const predictedWaitMinutesAtJoin = predicted
+    const expectedTurnTime = (predicted != null && mlFields.joinedAt)
+      ? new Date(mlFields.joinedAt.getTime() + predicted * 60 * 1000)
+      : null
+
     const token = new Token({
       _id: tokenId,
       tokenNumber,
@@ -235,8 +285,10 @@ export class TokenService {
       scheduledTime: new Date(),
       notes,
       qrCode,
-      estimatedWaitTime: 0,
-      ...mlFields // Add ML tracking fields
+      estimatedWaitTime: predicted ?? 0,
+      ...mlFields,
+      predictedWaitMinutesAtJoin,
+      expectedTurnTime
     })
 
     if (!userId) {

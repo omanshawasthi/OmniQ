@@ -126,9 +126,14 @@ const TokenRow = ({ token, onAction, loadingAction }) => {
         </div>
       </td>
 
-      {/* Time */}
-      <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">
-        {formatTime(token.scheduledTime || token.createdAt)}
+      {/* Time & ML Estimate */}
+      <td className="px-5 py-4 whitespace-nowrap text-left">
+        <p className="text-sm font-semibold text-gray-700">{formatTime(token.scheduledTime || token.createdAt)}</p>
+        {token.predictedWaitMinutesAtJoin != null && !isFinished && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded mt-1 border border-indigo-100">
+            ML Est: {Math.round(token.predictedWaitMinutesAtJoin)}m
+          </span>
+        )}
       </td>
 
       {/* Actions */}

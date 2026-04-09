@@ -1,5 +1,5 @@
 import express from 'express';
-import { getPublicQueueData } from '../controllers/publicController.js';
+import { getPublicQueueData } from '../src/controllers/publicController.js';
 import { getBranches } from '../src/controllers/branchController.js';
 import { asyncHandler } from '../src/middleware/errorHandler.js';
 

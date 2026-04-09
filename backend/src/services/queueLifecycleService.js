@@ -66,9 +66,9 @@ async function findTokenOrThrow(tokenId) {
  * Create a QueueLog entry — non-blocking, but errors are caught so they
  * never interrupt the main action.
  */
-async function log(tokenId, action, performedBy, metadata = {}) {
+async function log(tokenId, action, performedBy, metadata = {}, systemGenerated = false) {
   try {
-    await QueueLog.logAction({ tokenId, action, performedBy, metadata })
+    await QueueLog.logAction({ tokenId, action, performedBy, metadata, systemGenerated })
   } catch (err) {
     console.error('[QueueLog] Failed to write log:', err.message)
   }
@@ -165,7 +165,7 @@ export class QueueLifecycleService {
         await log(t._id, QUEUE_ACTIONS.EXPIRED, null, {
           reason: 'Automatically expired stale token from previous day',
           previousStatus: t.status
-        })
+        }, true) // true = systemGenerated
       }
       
       console.log(`[QueueLifecycle] Expired ${oldTokens.length} stale tokens.`)

@@ -58,8 +58,9 @@ def train_model():
     # 2. Preprocess
     df, encoders = preprocess_data(df)
     
-    # Features and Target
-    features = ['peopleAheadAtJoin', 'availableStaffAtJoin', 'hourOfDay', 'dayOfWeek', 'branchId', 'departmentId', 'serviceType']
+    # Features and Target - Note: availableStaffAtJoin was removed as it was a misleading branch-level signal.
+    # peopleAheadAtJoin was updated to sameDepartmentPeopleAhead for full honesty.
+    features = ['sameDepartmentPeopleAhead', 'hourOfDay', 'dayOfWeek', 'branchId', 'departmentId', 'serviceType']
     target = 'actualWaitMinutes'
     
     X = df[features]

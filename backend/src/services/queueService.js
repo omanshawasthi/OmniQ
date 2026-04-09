@@ -65,10 +65,7 @@ export class QueueService {
     const tokens = await Token.find(query)
       .populate('userId', 'name phone')
       .populate('departmentId', 'name')
-      .sort([
-        { priority: -1 },
-        { tokenNumber: 1 }
-      ])
+      .sort({ priority: -1, tokenNumber: 1 })
 
     return {
       tokens,
@@ -133,11 +130,7 @@ export class QueueService {
       status: TOKEN_STATUS.WAITING
     })
     .populate('userId', 'name phone')
-    .sort([
-      { priority: -1 },
-      { scheduledTime: 1 },
-      { createdAt: 1 }
-    ])
+    .sort({ priority: -1, scheduledTime: 1, createdAt: 1 })
 
     if (!nextToken) {
       throw new Error('No tokens in queue')
@@ -359,11 +352,7 @@ export class QueueService {
       status: TOKEN_STATUS.WAITING
     })
     .populate('departmentId', 'averageServiceTime')
-    .sort([
-      { priority: -1 },
-      { scheduledTime: 1 },
-      { createdAt: 1 }
-    ])
+    .sort({ priority: -1, scheduledTime: 1, createdAt: 1 })
 
     const avgServiceTime = tokens.length > 0 ? tokens[0].departmentId?.averageServiceTime || 15 : 15
 

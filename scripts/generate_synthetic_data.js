@@ -62,20 +62,17 @@ function generateData() {
     const hourOfDay = getRandomInt(8, 20); // 8 AM to 8 PM
 
     // People ahead: Randomly distributed but slightly higher in peak hours
-    let peopleAheadAtJoin = getRandomInt(0, 15);
-    if (hourOfDay >= 10 && hourOfDay <= 12) peopleAheadAtJoin += getRandomInt(5, 10);
-    if (hourOfDay >= 17 && hourOfDay <= 19) peopleAheadAtJoin += getRandomInt(3, 8);
+    let sameDepartmentPeopleAhead = getRandomInt(0, 15);
+    if (hourOfDay >= 10 && hourOfDay <= 12) sameDepartmentPeopleAhead += getRandomInt(5, 10);
+    if (hourOfDay >= 17 && hourOfDay <= 19) sameDepartmentPeopleAhead += getRandomInt(3, 8);
 
-    // Active staff: Most branches have 1-5
-    const availableStaffAtJoin = getRandomInt(1, 5);
-
-    // Calculate Wait Time
     const stConfig = serviceTypes[serviceType];
     const branchConfig = branches[branchId];
     const deptConfig = departments[departmentId];
     
-    // Base wait time calculation: (People Ahead + Current) * Mean Service Time / Counters
-    let waitMinutes = ((peopleAheadAtJoin + 1) * stConfig.mean) / availableStaffAtJoin;
+    // Base wait time calculation: (People Ahead + Current) * Mean Service Time 
+    // Notice: we do not divide by staff anymore as synthetic mapping is not possible.
+    let waitMinutes = ((sameDepartmentPeopleAhead + 1) * stConfig.mean);
 
     // Apply Multipliers
     waitMinutes *= branchConfig.efficiency;
@@ -102,8 +99,7 @@ function generateData() {
       branchId,
       departmentId,
       serviceType,
-      peopleAheadAtJoin,
-      availableStaffAtJoin,
+      sameDepartmentPeopleAhead,
       dayOfWeek,
       hourOfDay,
       actualWaitMinutes: waitMinutes.toFixed(2)
@@ -114,8 +110,8 @@ function generateData() {
 }
 
 function saveToCSV(data) {
-  const header = 'branchId,departmentId,serviceType,peopleAheadAtJoin,availableStaffAtJoin,dayOfWeek,hourOfDay,actualWaitMinutes';
-  const rows = data.map(r => `${r.branchId},${r.departmentId},${r.serviceType},${r.peopleAheadAtJoin},${r.availableStaffAtJoin},${r.dayOfWeek},${r.hourOfDay},${r.actualWaitMinutes}`);
+  const header = 'branchId,departmentId,serviceType,sameDepartmentPeopleAhead,dayOfWeek,hourOfDay,actualWaitMinutes';
+  const rows = data.map(r => `${r.branchId},${r.departmentId},${r.serviceType},${r.sameDepartmentPeopleAhead},${r.dayOfWeek},${r.hourOfDay},${r.actualWaitMinutes}`);
   
   const dir = path.dirname(OUTPUT_FILE);
   if (!fs.existsSync(dir)) {

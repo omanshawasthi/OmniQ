@@ -113,6 +113,62 @@ class AnalyticsService {
   }
 
   /**
+   * Get user registration and active distribution
+   */
+  async getUserAnalytics() {
+    // Get user role distribution
+    const roleDistribution = await mongoose.model('User').aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Get active users (users with tokens in last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const activeUsers = await Token.distinct('userId', {
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    const totalUsers = await mongoose.model('User').countDocuments();
+
+    return {
+      totalUsers,
+      activeUsers: activeUsers.length,
+      roleDistribution: roleDistribution.reduce((acc, r) => {
+        acc[r._id] = r.count;
+        return acc;
+      }, {})
+    };
+  }
+
+  /**
+   * Export ML training data
+   */
+  async getMLExport() {
+    // Only fetch tokens that fully completed their lifecycle (clean ML data)
+    const tokens = await Token.find({
+      status: TOKEN_STATUS.COMPLETED,
+      actualWaitMinutes: { $ne: null },
+      joinedAt: { $ne: null }
+    }).lean();
+
+    return tokens.map(t => ({
+      branchId: t.branchId?.toString() || '',
+      departmentId: t.departmentId?.toString() || '',
+      serviceType: t.bookingType || 'walk-in',
+      sameDepartmentPeopleAhead: t.sameDepartmentPeopleAhead || 0,
+      branchStaffCountAtJoin: t.branchStaffCountAtJoin || 0,
+      dayOfWeek: t.dayOfWeek,
+      hourOfDay: t.hourOfDay,
+      actualWaitMinutes: +(parseFloat(t.actualWaitMinutes) || 0).toFixed(2),
+      predictedWaitMinutesAtJoin: +(parseFloat(t.predictedWaitMinutesAtJoin) || 0).toFixed(2)
+    }));
+  }
+
+  /**
    * Get token volume trends over time
    */
   async getVolumeTrends(filters = {}) {

@@ -257,16 +257,7 @@ Time: ${formatTime(token?.scheduledTime)}
                 </div>
 
                 {(isWaiting || isServing) && (
-                  <div className="grid grid-cols-2 gap-4 mb-10">
-                    <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
-                      <p className="text-xs font-bold text-blue-400 uppercase mb-1">POSITION</p>
-                      <p className="text-3xl font-black text-blue-700">{token.queuePosition || '—'}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                      <p className="text-xs font-bold text-gray-400 uppercase mb-1">EST. WAIT</p>
-                      <p className="text-3xl font-black text-gray-700">{token.estimatedWaitTime || '0'}<span className="text-sm font-bold ml-1">MIN</span></p>
-                    </div>
-                  </div>
+                  <WaitInfoCard token={token} />
                 )}
 
                 <div className="relative mb-10 px-2 no-print">
@@ -393,5 +384,62 @@ const DetailItem = ({ icon, label, value, subValue }) => (
     </div>
   </div>
 )
+
+// ML Wait Info Card — shown only while token is waiting or serving
+const WaitInfoCard = ({ token }) => {
+  // Prefer ML prediction, fall back to estimatedWaitTime, then nothing
+  const rawWait = token?.predictedWaitMinutesAtJoin ?? token?.estimatedWaitTime ?? null
+  const waitMins = rawWait !== null ? Math.round(rawWait) : null
+  const peopleAhead = token?.sameDepartmentPeopleAhead ?? null
+  const expectedTurn = token?.expectedTurnTime
+    ? new Date(token.expectedTurnTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : null
+
+  // Nothing useful to show at all
+  if (waitMins === null && expectedTurn === null && peopleAhead === null) {
+    return (
+      <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 mb-10 text-center">
+        <p className="text-sm text-gray-400">Wait time will be updated shortly</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-5">
+      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Queue Status</p>
+      <div className="flex flex-wrap gap-4">
+
+        {/* Wait time */}
+        <div className="flex-1 min-w-[100px] bg-white rounded-xl p-4 border border-blue-100 text-center shadow-sm">
+          <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Est. Wait</p>
+          {waitMins !== null ? (
+            <p className="text-2xl font-black text-blue-700">
+              ~{waitMins}<span className="text-sm font-bold ml-1">min</span>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400">—</p>
+          )}
+        </div>
+
+        {/* Expected turn time */}
+        {expectedTurn && (
+          <div className="flex-1 min-w-[120px] bg-white rounded-xl p-4 border border-indigo-100 text-center shadow-sm">
+            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Expected By</p>
+            <p className="text-xl font-black text-indigo-700">{expectedTurn}</p>
+          </div>
+        )}
+
+        {/* People ahead */}
+        {peopleAhead !== null && (
+          <div className="flex-1 min-w-[100px] bg-white rounded-xl p-4 border border-gray-100 text-center shadow-sm">
+            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Ahead of You</p>
+            <p className="text-2xl font-black text-gray-700">{peopleAhead}</p>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
 
 export default TokenDetailsPage

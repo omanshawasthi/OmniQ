@@ -1,0 +1,6 @@
+pandas==2.*
+scikit-learn==1.*
+joblib==1.*
+fastapi==0.*
+uvicorn==0.*
+pydantic==2.*

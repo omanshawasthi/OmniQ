@@ -145,11 +145,11 @@ const tokenSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  peopleAheadAtJoin: {
+  sameDepartmentPeopleAhead: {
     type: Number,
     default: 0
   },
-  availableStaffAtJoin: {
+  branchStaffCountAtJoin: {
     type: Number,
     default: 0
   },
@@ -167,6 +167,11 @@ const tokenSchema = new mongoose.Schema({
   },
   predictedWaitMinutesAtJoin: {
     type: Number,
+    default: null
+  },
+  // Computed timestamp: joinedAt + predictedWaitMinutesAtJoin
+  expectedTurnTime: {
+    type: Date,
     default: null
   }
 }, {

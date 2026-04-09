@@ -15,7 +15,7 @@ const queueLogSchema = new mongoose.Schema({
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Performed by is required']
+    required: false // Optional for system-generated actions
   },
   timestamp: {
     type: Date,

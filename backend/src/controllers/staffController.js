@@ -14,14 +14,15 @@ export const getTodayQueueStats = async (req, res, next) => {
 export const getTodayQueue = async (req, res, next) => {
   try {
     const branchId = req.query.branchId || req.user.assignedBranch;
-    const { departmentId, status, source, priority, search } = req.query;
+    const { departmentId, status, source, priority, search, dateRange } = req.query;
 
     const queue = await StaffService.getTodayQueue(branchId, {
       departmentId,
       status,
       source,
       priority,
-      search
+      search,
+      dateRange
     });
 
     res.status(200).json({ success: true, count: queue.length, data: queue });

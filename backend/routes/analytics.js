@@ -5,7 +5,7 @@ import {
   getPerformanceMetrics,
   getUserAnalytics,
   getMLExport
-} from '../controllers/analyticsController.js';
+} from '../src/controllers/analyticsController.js';
 
 const router = express.Router();
 
